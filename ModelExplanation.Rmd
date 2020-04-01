@@ -352,4 +352,8 @@ Agregados de programación siempre y cuando se limiten a mejorar las gráficas, 
 
 Traducciones bienvenidas.
 
+## Código
+
+Ver código en [Github](https://github.com/RodrigoZepeda/CoronavirusModel)
+
 ## Referencias
