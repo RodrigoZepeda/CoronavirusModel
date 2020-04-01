@@ -1,6 +1,6 @@
 ---
 title: "Modelo de M clases (edad/grupo socioeconómico) con distintos escenarios de cuarentena y desabasto hospitalario para COVID-19"
-author: "Equipo de modelaje del coronavirus del IMSS"
+author: "Equipo de modelaje del coronavirus"
 date: "3/31/2020"
 output: html_document
 header-includes:
