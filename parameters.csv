@@ -1,16 +1,16 @@
 ﻿Parameter,Category 1,Category 2,Category 3,Category 4
 Category interpretation,< 20,20 to 60,60 to 80,80+
 R0,2.23,2.23,2.23,2.23
-Days on mild case before becoming severe,5,5,5,5
+Days on mild case before becoming severe,6,6,6,6
 Days asymptomatic contagious before recovery,8,8,8,8
 Days of mild case before recovery,8,8,8,8
-Days of severe case before recovery with hospitalization,6,6,6,6
-Days of severe case before recovery without hospitalization,6,6,6,6
-Days of severe case before critical with hospitalization,6,6,6,6
-Days of severe case before critical without hospitalization,6,6,6,6
-Days of critical case before recovery,9,9,9,9
-Days of critical case before death,5,5,5,5
-Days of latency (with virus but not contagious),5.11,5.11,5.11,5.11
+Days of severe case before recovery with hospitalization,15,15,15,15
+Days of severe case before recovery without hospitalization,15,15,15,15
+Days of severe case before critical with hospitalization,1,1,1,1
+Days of severe case before critical without hospitalization,1,1,1,1
+Days of critical case before recovery,12,12,12,12
+Days of critical case before death,7.5,7.5,7.5,7.5
+Days of latency (with virus but not contagious),4,4,4,4
 Contact rate for mild cases,Estimate from R0,Estimate from R0,Estimate from R0,Estimate from R0
 Contact rate for severe cases,0,0,0,0
 Contact rate for critical cases,0,0,0,0

@@ -309,8 +309,8 @@ También puede cambiarse de manera manual en los parámetros:
 
 
 ```{r}
-params$saturationI2 <- 0.01
-params$saturationI3 <- 0.001
+params$saturationI2 <- 0.001
+params$saturationI3 <- 0.0001
 saturated.model <- run.model.continuous(params, state,  init.time = 0, end.time = 100)
 ```
 
