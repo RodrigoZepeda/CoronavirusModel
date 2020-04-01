@@ -1,0 +1,29 @@
+﻿Parameter,Category 1,Category 2,Category 3,Category 4
+Category interpretation,< 20,20 to 60,60 to 80,80+
+R0,2.23,2.23,2.23,2.23
+Days on mild case before becoming severe,5,5,5,5
+Days asymptomatic contagious before recovery,8,8,8,8
+Days of mild case before recovery,8,8,8,8
+Days of severe case before recovery with hospitalization,6,6,6,6
+Days of severe case before recovery without hospitalization,6,6,6,6
+Days of severe case before critical with hospitalization,6,6,6,6
+Days of severe case before critical without hospitalization,6,6,6,6
+Days of critical case before recovery,9,9,9,9
+Days of critical case before death,5,5,5,5
+Days of latency (with virus but not contagious),5.11,5.11,5.11,5.11
+Contact rate for mild cases,Estimate from R0,Estimate from R0,Estimate from R0,Estimate from R0
+Contact rate for severe cases,0,0,0,0
+Contact rate for critical cases,0,0,0,0
+Contact rate for asymptomatic cases,Estimate from R0,Estimate from R0,Estimate from R0,Estimate from R0
+Probability of severe given mild,0.16,0.16,0.16,0.16
+Proportion of asymptomatic cases,0.37,0.37,0.37,0.37
+Probability of death given critical with hospitalization,0.11,0.1771,0.435,0.86
+Probability of death given critical without hospitalization,1,1,1,1
+Probability of critical given severe with hospitalization,0.01,0.185,0.36,0.09
+Probability of critical given severe without hospitalization,0.5,0.5,0.5,0.5
+Initial susceptible cases,0.34672723,0.54168417,0.09583051,0.01575435
+Initial mild cases,0.000000189,0.00000294,0.000000574,0.000000031
+Initial latent cases,0,0,0,0
+Initial severe cases,0,0,0,0
+Initial critical cases,0,0,0,0
+Initial asymptomatic cases,0,0,0,0
