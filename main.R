@@ -16,7 +16,7 @@ source("read.parameters.R")
 source("auxiliary.functions.R")
 
 #Parameter list
-initial.list <- read.parameters(params.file, resource.file)
+initial.list <- read.parameters(params.file)
 params       <- initial.list$params
 state        <- initial.list$state
 
@@ -31,7 +31,6 @@ model.2 <- run.model.continuous(params, state, init.time = 20, end.time = 30)
 state   <- unquarantine_all(model.2$state)
 model.3 <- run.model.periodic(params, state, init.time = 30, end.time = 50,
                                   periodicity = 7, days = 2)
-
 
 #Change R0
 params  <- rnought.change.gamma.1(1.2, params)

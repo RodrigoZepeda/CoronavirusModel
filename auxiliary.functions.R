@@ -10,7 +10,7 @@ AR.from.R0 <- function(R0, S = 1, lims = c(0.001,0.9999)){
 }
 
 #Function to aggregare data
-model.aggregate.data <- function(dats, age_cats = ncol(dats)/10, 
+model.aggregate.data <- function(dats, age_cats = ncol(dats)/11, 
                                  k = 1:age_cats, 
                                  variable = "S"){
   
@@ -40,7 +40,7 @@ run.model.continuous <- function(params, state, init.time = 0, end.time = 20,
   end.state      <- dats[nrow(dats),] %>% select(-time)
   
   #Loop agregating data
-  age_cats <- ncol(dats)/10
+  age_cats <- ncol(dats)/11
   for (var in c("S","E","A","I1","I2","I3","Q","QA","QI","M")){
     dats <- model.aggregate.data(dats, variable = var, age_cats = age_cats)
   }
@@ -49,7 +49,7 @@ run.model.continuous <- function(params, state, init.time = 0, end.time = 20,
 }
 
 #Function to quarantine kth category
-quarantine_k <- function(state, age_cats = length(state)/10, k = 1:age_cats,
+quarantine_k <- function(state, age_cats = length(state)/11, k = 1:age_cats,
                          quarantine.type = "Susceptible", quarantine.proportion = 1){
   
   #Check if quarantine proportion is vector or numner
@@ -58,12 +58,14 @@ quarantine_k <- function(state, age_cats = length(state)/10, k = 1:age_cats,
   }
   
   p.col.name <- switch(quarantine.type,
-                       Susceptible = "S",
+                       Susceptible  = "S",
+                       Exposed      = "E",
                        Asymptomatic = "A",
                        Mild = "I1")
   
   q.col.name <- switch(quarantine.type,
-                       Susceptible = "Q",
+                       Susceptible  = "Q",
+                       Exposed      = "QE",
                        Asymptomatic = "QA",
                        Mild = "QI")
   
@@ -82,9 +84,9 @@ quarantine_k <- function(state, age_cats = length(state)/10, k = 1:age_cats,
 
 
 #Function to quarantine all
-quarantine_all <- function(state, age_cats = length(state)/10, quarantine.proportion = 1){
+quarantine_all <- function(state, age_cats = length(state)/11, quarantine.proportion = 1){
   
-  qtype <- c("Susceptible","Asymptomatic","Mild")
+  qtype <- c("Susceptible","Exposed","Asymptomatic","Mild")
   
   if (length(quarantine.proportion) == 1){
     quarantine.proportion <- rep(quarantine.proportion, 3)
@@ -99,7 +101,7 @@ quarantine_all <- function(state, age_cats = length(state)/10, quarantine.propor
 }
 
 #Function to change from quarantine to normal
-unquarantine_k <- function(state, age_cats = length(state)/10, k = 1:age_cats,
+unquarantine_k <- function(state, age_cats = length(state)/11, k = 1:age_cats,
                          quarantine.type = "Susceptible", unquarantine.proportion = 1){
   
   #Check if quarantine proportion is vector or numner
@@ -108,14 +110,16 @@ unquarantine_k <- function(state, age_cats = length(state)/10, k = 1:age_cats,
   }
   
   p.col.name <- switch(quarantine.type,
-                         Susceptible = "S",
-                         Asymptomatic = "A",
-                         Mild = "I1")
+                       Susceptible  = "S",
+                       Exposed      = "E",
+                       Asymptomatic = "A",
+                       Mild = "I1")
   
   q.col.name <- switch(quarantine.type,
-                         Susceptible = "Q",
-                         Asymptomatic = "QA",
-                         Mild = "QI")
+                       Susceptible  = "Q",
+                       Exposed      = "QE",
+                       Asymptomatic = "QA",
+                       Mild = "QI")
   
   #Get column names
   q.col.name <- paste0(q.col.name,k)
@@ -131,9 +135,9 @@ unquarantine_k <- function(state, age_cats = length(state)/10, k = 1:age_cats,
 }
 
 #Function to unquarantine all
-unquarantine_all <- function(state, age_cats = length(state)/10, unquarantine.proportion = 1){
+unquarantine_all <- function(state, age_cats = length(state)/11, unquarantine.proportion = 1){
   
-  qtype <- c("Susceptible","Asymptomatic","Mild")
+  qtype <- c("Susceptible","Exposed","Asymptomatic","Mild")
   
   if (length(unquarantine.proportion) == 1){
     unquarantine.proportion <- rep(unquarantine.proportion, 3)
@@ -238,7 +242,7 @@ ggplot.epidemiological.lines.infected <- function(modelo, title = "Evolución de
 ggplot.epidemiological.lines.infected.cat <- function(modelo, title = "Evolución de COVID-19", 
                                                   xlab = "Día", 
                                                   ylab = "Proporción de casos",
-                                                  states = ncol(modelo$dats)/10 - 1,
+                                                  states = ncol(modelo$dats)/11 - 1,
                                                   date.init = NULL){
   
   if (!is.null(date.init)){

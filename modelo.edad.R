@@ -26,9 +26,9 @@ model <- function(t, y, parameters){
     I3pos  <- 20
     Mpos   <- 24
     QSpos  <- 28
-    Q1pos  <- 32
-    Q2pos  <- 36
-    Incpos <- 40
+    QEpos  <- 32
+    QApos  <- 36
+    QIpos  <- 40
     
     
     #Instantiate variables for age
@@ -82,11 +82,11 @@ model <- function(t, y, parameters){
       #Infectados 1 (leves)
       #dI1/dt[k] =  (1 - p.A[k])*gamma.E[k]*E[k] - (p.I2[k]*beta.1to2[k] + (1 - p.I2[k])*beta.1toR[k])*I1[k]
       dy[I1pos + k] <- (1 - p.A[k])*gamma.E[k]*y[Epos + k] - (p.I2[k]*beta.1to2[k] + 
-        (1 - p.I2[k])*beta.1toR[k])*y[I1pos + k]
+        (1 - p.I2[k])*beta.1toR[k] - q2[k])*y[I1pos + k]
       
       #Infectados 2 (graves)
       #dI2/dt[k] = p.I2[k]*beta.1to2[k]*(Q2[k] + I1[k]) - (p.I3[k]*beta.2to3[k] + (1 - p.I3[k])*beta.2toR[k])*I2[k]
-      dy[I2pos + k] <- p.I2[k]*beta.1to2[k]*(y[Q2pos + k] + y[I1pos + k]) - 
+      dy[I2pos + k] <- p.I2[k]*beta.1to2[k]*(y[QIpos + k] + y[I1pos + k]) - 
         (p.I3[k]*beta.2to3[k] + (1 - p.I3[k])*beta.2toR[k])*y[I2pos + k]
       
       #Infectados 3 (críticos)
@@ -101,11 +101,15 @@ model <- function(t, y, parameters){
       #Cuarentena susceptibles
       dy[QSpos + k] <- 0
       
+      #Cuarentena de expuestos
+      dy[QEpos + k] <- - gamma.E[k]*y[QEpos + k]
+      
       #Cuarentena de asintomáticos
-      dy[Q1pos + k] <- - beta.AtoR[k]*y[Q1pos + k]
+      dy[QApos + k] <- p.A[k]*gamma.E[k]*y[QEpos + k] - beta.AtoR[k]*y[QApos + k]
       
       #Cuarentena de infectados
-      dy[Q2pos + k] <- - (p.I2[k]*beta.1to2[k] + (1 - p.I2[k])*beta.1toR[k])*y[Q2pos + k]
+      dy[QIpos + k] <- (1 - p.A[k])*gamma.E[k]*y[QEpos + k] - 
+        (p.I2[k]*beta.1to2[k] + (1 - p.I2[k])*beta.1toR[k])*y[QIpos + k]
       
     }
     

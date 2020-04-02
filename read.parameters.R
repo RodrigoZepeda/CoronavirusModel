@@ -64,7 +64,8 @@ read.parameters <- function(params.file = "parameters.csv", estimate.saturation 
       beta.2toR.saturated     = as.numeric(data.parameters["Days of severe case before recovery without hospitalization",]),
       beta.2toR.not.saturated = as.numeric(data.parameters["Days of severe case before recovery with hospitalization",]),
       saturationI2            = Inf, 
-      saturationI3            = Inf
+      saturationI3            = Inf,
+      q2                      = rep(0, ncol(data.parameters))
     )
     
     #Get resource file
@@ -82,7 +83,8 @@ read.parameters <- function(params.file = "parameters.csv", estimate.saturation 
       I3 = as.numeric(data.parameters["Initial critical cases",]),
       A  = as.numeric(data.parameters["Initial asymptomatic cases",]),
       M  = rep(0, ncol(data.parameters)),
-      Q  = rep(0, ncol(data.parameters)),  
+      Q  = rep(0, ncol(data.parameters)),
+      QE = rep(0, ncol(data.parameters)),  
       QA = rep(0, ncol(data.parameters)), 
       QI = rep(0, ncol(data.parameters))
     )

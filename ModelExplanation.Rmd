@@ -271,6 +271,12 @@ model.6 <- run.model.continuous(params, state, init.time = 70, end.time = 80)
 ```
 
 ```{r, warning = FALSE}
+#Add quarantine only to infected
+params$q2 <- rep(1, 4)
+model.7   <- run.model.continuous(params, model.6$state, init.time = 80, end.time = 100)
+```
+
+```{r, warning = FALSE}
 ggplot() +
   geom_line(aes(x = time, y = I1 + QI, 
                 color = "Evolución usual"), data = model.1$dats) + 
@@ -287,6 +293,9 @@ ggplot() +
   geom_line(aes(x = time, y = I1 + QI,
                 color = "Cuarentena de mayores de 60 con R0 = 2.1"), 
             data = model.6$dats) +
+  geom_line(aes(x = time, y = I1 + QI,
+                color = "Sólo cuarentena del 50% de infectados"), 
+            data = model.7$dats) +
   theme_classic() +
   ggtitle("Distintos esquemas de cuarentena del modelo") +
   ylab("Infectados (proporción)") +
@@ -333,10 +342,6 @@ ggplot() +
 ```
 
 ## TODO
-
-+ Arreglar la cuarentena de E
-
-+ Arreglar la cuarentena de I1 bajo el esquema voluntario
 
 + Crear gráficas de incidencias de casos
 
