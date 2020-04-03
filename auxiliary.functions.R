@@ -151,6 +151,42 @@ unquarantine_all <- function(state, age_cats = length(state)/11, unquarantine.pr
   
 }
 
+
+#Function to quarantine all k-states 
+quarantine.all.k <-function(state, age_cats = length(state)/11, k = 1:age_cats, quarantine.proportion = 1){
+  
+  qtype <- c("Susceptible","Exposed","Asymptomatic","Mild")
+  
+  if (length(quarantine.proportion) == 1){
+    quarantine.proportion <- rep(quarantine.proportion, 3)
+  }
+  
+  for (i in 1:3){
+    state <- quarantine_k(state, quarantine.type = qtype[i], quarantine.proportion = quarantine.proportion[i],k=k)
+  }
+  
+  return(state)
+  
+}
+
+#Function to unquarantine all k-states 
+unquarantine.all.k <- function(state, age_cats = length(state)/11, k = 1:age_cats, unquarantine.proportion = 1){
+  
+  qtype <- c("Susceptible","Exposed","Asymptomatic","Mild")
+  
+  if (length(unquarantine.proportion) == 1){
+    unquarantine.proportion <- rep(unquarantine.proportion, 3)
+  }
+  
+  for (i in 1:3){
+    state <- unquarantine_k(state, quarantine.type = qtype[i], unquarantine.proportion = unquarantine.proportion[i],k=k)
+  }
+  
+  return(state)
+  
+}
+
+
 rnought.change.gamma.1 <- function(R0, params){
   params$gamma.1 <- R0/params$gamma.E
   return(params)
@@ -220,6 +256,125 @@ run.model.periodic <- function(params, state, init.time = 0, end.time = 30,
   
   return(list(dats = dats.temp, state = end.state))
 }
+
+
+
+#Model with periodic quarantine of the k-class.    
+run.model.periodic.k <- function(params, state, init.time = 0, end.time = 30,age_cats = length(state)/11, k = 1:age_cats,   
+                                 periodicity = 7, days = 2, quarantine.proportion = 1,
+                                 t.step = 0.1, method = "lsoda"){
+  #Warning if too small periodicity
+  if (periodicity > end.time - init.time){
+    stop("Invalid periodicity for said time. This is no periodic quarantine.")
+  }
+  
+  
+  #Calculate moments of quarantine
+  q.moments <- seq(init.time, end.time, by = periodicity)
+  dats      <- as.data.frame(state)
+  dats$time <- init.time
+  
+  for (i in 1:(length(q.moments) - 1)){
+    
+    #Run model without quarantine
+    no.quarantine.model <- run.model.continuous(params, state, init.time = q.moments[i], 
+                                                end.time = q.moments[i+1] - days, t.step = t.step, method = "lsoda")
+    
+    #Get new state after quarantine
+    state     <- quarantine.all.k(no.quarantine.model$state, quarantine.proportion = quarantine.proportion, k=k )
+    
+    #Run model with quarantine
+    quarantine.model <- run.model.continuous(params, state, init.time = q.moments[i+1] - days, 
+                                             end.time = q.moments[i+1], t.step = t.step, method = "lsoda")
+    
+    #Get new state after quarantine
+    state     <- unquarantine.all.k(quarantine.model$state, unquarantine.proportion = 1,  age_cats = age_cats, k=k )
+    
+    #Bind to data
+    if (!exists("dats.temp")){
+      dats.temp  <- rbind(no.quarantine.model$dats, quarantine.model$dats)
+    } else {
+      dats.temp  <- rbind(dats.temp, no.quarantine.model$dats, quarantine.model$dats)
+    }
+    
+  }
+  
+  #Check if we haven't arrived
+  if (end.time != q.moments[length(q.moments)]){
+    no.quarantine.end <- run.model.continuous(params, state, init.time = q.moments[length(q.moments)],  
+                                              end.time =end.time, t.step = t.step, method = "lsoda")
+    dats.temp         <- rbind(dats.temp, no.quarantine.end$dats)
+  }
+  
+  #Get ending state
+  end.state      <- dats.temp[nrow(dats.temp),] %>% 
+    select(-time, -S, -E, -A, -I1, -I2, -I3, -Q, -QA, -QI, -M)
+  
+  
+  return(list(dats = dats.temp, state = end.state))
+}
+#Model with quarentine of tke s-class and periodic quarantine of the k-class .         
+run.model.hybrid.ks<- function(params, state, init.time = 0, end.time = 30,age_cats = length(state)/11, 
+                               s=min(ceiling(age_cats/2),age_cats),
+                               k = seq(1,age_cats)[-s],   
+                               periodicity = 7, days = 2, quarantine.proportion_k = 1,
+                               quarantine.proportion_s = 1,t.step = 0.1, method = "lsoda"){
+  
+  #Warning if too small periodicity
+  if (periodicity > end.time - init.time){
+    stop("Invalid periodicity for said time. This is no periodic quarantine.")
+  }
+  
+  
+  #Calculate moments of quarantine
+  q.moments <- seq(init.time, end.time, by = periodicity)
+  dats      <- as.data.frame(state)
+  dats$time <- init.time
+  
+  #Get state after quarantine of the s-class
+  state     <- quarantine.all.k(state, quarantine.proportion = quarantine.proportion_s, k=s )        
+  
+  for (i in 1:(length(q.moments) - 1)){
+    
+    #Run model without quarantine of the k-class
+    no.quarantine.model <- run.model.continuous(params, state, init.time = q.moments[i], 
+                                                end.time = q.moments[i+1] - days, t.step = t.step, method = "lsoda")
+    
+    #Get new state after quarantine of the k-class 
+    state     <- quarantine.all.k(no.quarantine.model$state, quarantine.proportion = quarantine.proportion_k, k=k )
+    #Run model with quarantine of the k-class
+    quarantine.model <- run.model.continuous(params, state, init.time = q.moments[i+1] - days, 
+                                             end.time = q.moments[i+1], t.step = t.step, method = "lsoda")
+    
+    #Get new state after quarantine of the k-class
+    state     <- unquarantine.all.k(quarantine.model$state, unquarantine.proportion = 1, k=k )
+    
+    #Bind to data
+    if (!exists("dats.temp")){
+      dats.temp  <- rbind(no.quarantine.model$dats, quarantine.model$dats)
+    } else {
+      dats.temp  <- rbind(dats.temp, no.quarantine.model$dats, quarantine.model$dats)
+    }
+    
+  }
+  #Get the new state after quarantine the s-class. 
+  state     <- unquarantine.all.k(quarantine.model$state, unquarantine.proportion = 1,  k=s )
+  #Check if we haven't arrived
+  if (end.time != q.moments[length(q.moments)]){
+    no.quarantine.end <- run.model.continuous(params, state, init.time = q.moments[length(q.moments)],  
+                                              end.time =end.time, t.step = t.step, method = "lsoda")
+    dats.temp         <- rbind(dats.temp, no.quarantine.end$dats)
+  }
+  
+  #Get ending state
+  end.state      <- dats.temp[nrow(dats.temp),] %>% 
+    select(-time, -S, -E, -A, -I1, -I2, -I3, -Q, -QA, -QI, -M)
+  
+  
+  return(list(dats = dats.temp, state = end.state))
+}
+
+
 
 ggplot.epidemiological.lines.infected <- function(modelo, title = "Evolución de COVID-19", 
                                          xlab = "Día", 

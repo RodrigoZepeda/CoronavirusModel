@@ -6,7 +6,7 @@ library(tidyverse)
 library(sfsmisc)
 
 #Working directory
-dir <- "~/Dropbox/Coronavirus/ModelbyCategoriesMarch30"
+dir <- "C:/Users/ismat/Documents/CoronavirusModel-IMSS"
 params.file   <- "parameters.csv"
 resource.file <- "resources.csv"
 setwd(dir)
@@ -27,10 +27,17 @@ model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 20)
 state   <- quarantine_all(model.1$state)
 model.2 <- run.model.continuous(params, state, init.time = 20, end.time = 30)
 
-#Then continue model wth periodic quarantine
+#Then continue model wth periodic quarantine (all groups, k-group or k-group and s-group with traditional quarantine)
 state   <- unquarantine_all(model.2$state)
-model.3 <- run.model.periodic(params, state, init.time = 30, end.time = 50,
-                                  periodicity = 7, days = 2)
+#model.3 <- run.model.periodic(params, state, init.time = 30, end.time = 50,
+#                                 periodicity = 7, days = 2)
+#model.3 <- run.model.periodic.k(params, state, init.time = 30, end.time = 50,
+#                                  periodicity = 7, days = 2,k=4)
+model.3 <- run.model.hybrid.ks(params, state, init.time = 30, end.time = 50,
+                               periodicity = 7, days = 2,k=4,s=1)
+
+
+
 
 #Change R0
 params  <- rnought.change.gamma.1(1.2, params)
