@@ -6,7 +6,7 @@ library(tidyverse)
 library(sfsmisc)
 
 #Working directory
-dir <- "C:/Users/ismat/Documents/CoronavirusModel-IMSS"
+dir <- "~/Dropbox/Coronavirus/ModelbyCategoriesMarch30"
 params.file   <- "parameters.csv"
 resource.file <- "resources.csv"
 setwd(dir)
@@ -21,23 +21,19 @@ params       <- initial.list$params
 state        <- initial.list$state
 
 #You can run model with run model.instance
-model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 20)
+microbenchmark::microbenchmark(
+  run.model.continuous(params, state,  init.time = 0, end.time = 200),
+  times = 100
+)
 
 #And then add quarantine
 state   <- quarantine_all(model.1$state)
 model.2 <- run.model.continuous(params, state, init.time = 20, end.time = 30)
 
-#Then continue model wth periodic quarantine (all groups, k-group or k-group and s-group with traditional quarantine)
+#Then continue model wth periodic quarantine
 state   <- unquarantine_all(model.2$state)
-#model.3 <- run.model.periodic(params, state, init.time = 30, end.time = 50,
-#                                 periodicity = 7, days = 2)
-#model.3 <- run.model.periodic.k(params, state, init.time = 30, end.time = 50,
-#                                  periodicity = 7, days = 2,k=4)
-model.3 <- run.model.hybrid.ks(params, state, init.time = 30, end.time = 50,
-                               periodicity = 7, days = 2,k=4,s=1)
-
-
-
+model.3 <- run.model.periodic(params, state, init.time = 30, end.time = 50,
+                                  periodicity = 7, days = 2)
 
 #Change R0
 params  <- rnought.change.gamma.1(1.2, params)
@@ -48,6 +44,11 @@ state   <- quarantine_all(model.4$state)
 params  <- rnought.change.gamma.1(2.1, params)
 model.5 <- run.model.continuous(params, state, init.time = 60, end.time = 120)
 
+#Get cummulative cases for model 5
+acumulados.1 <- cummulative.cases(model.1)
+
+ggplot(acumulados.1) +
+  geom_line(aes(x = time, y = M))
 
 
 ggplot() +

@@ -1,5 +1,5 @@
 ---
-title: "Modelo de M clases (edad/grupo socioeconómico) con distintos escenarios de cuarentena y desabasto hospitalario para COVID-19"
+title: "Modelo de M clases (edad/grupo socioeconómico/comorbilidad) con distintos escenarios de cuarentena y desabasto hospitalario para COVID-19"
 author: "Equipo de modelaje del coronavirus"
 date: "3/31/2020"
 output: html_document
@@ -18,7 +18,7 @@ library(deSolve)
 library(tidyverse)
 library(sfsmisc)
 library(kableExtra)
-
+library(cowplot)
 #Working directory
 dir <- "~/Dropbox/Coronavirus/ModelbyCategoriesMarch30"
 params.file   <- "parameters.csv"
@@ -302,6 +302,20 @@ ggplot() +
   xlab("Tiempo")
 ```
 
+### Casos acumulados
+
+Los casos acumulados pueden calcularse con la función `cummulative.cases` como se explica a continuación:
+
+```{r, warning = FALSE, eval = TRUE}
+#Parameter list
+initial.list    <- read.parameters(params.file)
+ode.model       <- run.model.continuous(initial.list$params, initial.list$state,  
+                                        init.time = 0, end.time = 100)
+acumulados      <- cummulative.cases(ode.model)
+ggplot.cummulative.lines.all(acumulados)
+```
+
+
 ### Desabasto hospitalario y efecto cascada
 
 El modelo actual incluye un efecto de saturación del sistema "efecto cascada". En los parámetros se puede establecer los niveles de saturación del sistema a partir de la base de recursos:
@@ -341,9 +355,35 @@ ggplot() +
   ggtitle("Mortalidad por COVID-19")
 ```
 
+## Gráficas
+
+Dado un modelo podemos producir las siguientes gráficas:
+
+```{r, warning = FALSE}
+#Parameter list
+initial.list <- read.parameters(params.file, resource.file = resource.file)
+params       <- initial.list$params
+state        <- initial.list$state
+ode.model    <- run.model.continuous(params, state,  init.time = 0, 
+                                     end.time = 100)
+```
+
+Gráficas de infectados ya sea agregados o por categoría:
+
+```{r}
+ggplot.epidemiological.lines.infected(ode.model)
+ggplot.epidemiological.lines.infected.cat(ode.model)
+```
+
+Gráficas de todas las curvas epidemiológicas agregadas o por edad:s
+```{r}
+ggplot.epidemiological.lines.all(ode.model)
+ggplot.epidemiological.lines.all.cat(ode.model)
+```
+
 ## TODO
 
-+ Crear gráficas de incidencias de casos
++ Crear gráficas de todas las curvas epidemiológicas 
 
 + Crear gráficas de demanda hospitalaria
 
