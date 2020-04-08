@@ -4,6 +4,11 @@ rm(list = ls())
 library(deSolve)
 library(tidyverse)
 library(sfsmisc)
+library(kableExtra)
+library(cowplot)
+library(R0)
+library(plyr)
+library(mgcv)
 
 #Working directory
 dir <- "~/Dropbox/Coronavirus/ModelbyCategoriesMarch30"
@@ -25,7 +30,7 @@ state        <- initial.list$state
 params$saturationI2 <- 0.001
 params$saturationI3 <- 0.0001
 model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 100)
-time.to.saturation(model.1)
+
 
 #And then add quarantine
 state   <- quarantine_all(model.1$state)
@@ -45,8 +50,6 @@ state   <- quarantine_all(model.4$state)
 params  <- rnought.change.gamma.1(2.1, params)
 model.5 <- run.model.continuous(params, state, init.time = 60, end.time = 120)
 
-#Get cummulative cases for model 5
-sum(model.1$dats[nrow(model.1$dats),-c(1)])
 
 
 ggplot() +
@@ -63,12 +66,6 @@ ggplot() +
                 color = "Cuarentena poblacional  con R0 = 2.1"), 
             data = model.5$dats) +
   theme_classic()
-
-
-#Model quarantine k
-#Model unquarantine k
-#Model periodic quarentine
-#Model change R0
 
 
 

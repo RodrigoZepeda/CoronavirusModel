@@ -14,29 +14,6 @@ bibliography: references.bib
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
-rm(list = ls())
-
-#Required libraries to run the model
-library(deSolve)
-library(tidyverse)
-library(sfsmisc)
-library(kableExtra)
-library(cowplot)
-library(R0)
-library(plyr)
-library(mgcv)
-
-#Working directory
-dir <- "~/Dropbox/Coronavirus/ModelbyCategoriesMarch30"
-params.file   <- "parameters.csv"
-resource.file <- "resources.csv"
-setwd(dir)
-
-source("modelo.edad.R")
-source("read.parameters.R")
-source("auxiliary.functions.R")
-source("estimation.functions.R")
 ```
 
 ### Licencias
@@ -181,6 +158,31 @@ $$
 $$
 
 # Programación
+
+```{r}
+
+rm(list = ls())
+
+#Required libraries to run the model
+library(deSolve)
+library(tidyverse)
+library(sfsmisc)
+library(kableExtra)
+library(cowplot)
+library(R0)
+library(plyr)
+library(mgcv)
+
+#Files
+params.file   <- "parameters.csv"
+resource.file <- "resources.csv"
+
+#Functions
+source("modelo.edad.R")
+source("read.parameters.R")
+source("auxiliary.functions.R")
+source("estimation.functions.R")
+```
 
 ## Datos
 
@@ -556,11 +558,190 @@ ggplot.epidemiological.lines.infected(model.A, infect.cats = c("I2","I3"),
   ggtitle("Casos estimados por tipo de infección") +
   theme_bw()
 ```
+
+# Ejemplo
+
+En este ejemplo se evalúan distintos escenarios a partir del código. En primer lugar se llaman los paquetes y funciones a utilizar:
+```{r}
+#Required libraries to run the model
+library(deSolve)
+library(tidyverse)
+library(sfsmisc)
+library(kableExtra)
+library(cowplot)
+library(R0)
+library(plyr)
+library(mgcv)
+
+#Files
+params.file   <- "parameters.csv"
+resource.file <- "resources.csv"
+
+#Functions
+source("modelo.edad.R")
+source("read.parameters.R")
+source("auxiliary.functions.R")
+source("estimation.functions.R")
+```
+
+Luego se construye el modelo a partir de casos observados:
+
+```{r}
+#Estimate cummulative cases for Mexico
+cummulative.cases <- c(2785, 2439, 2143, 1890, 1688, 1510, 1378, 1215, 1094, 
+                       993, 848, 717, 585, 475, 405, 367, 316, 251, 203, 164, 
+                       118, 93, 82, 53, 41, 26, 15, 11, 7)
+date.cases        <- c("7/4/2020", "6/4/2020", "5/4/2020", "4/4/2020", "3/4/2020",
+                       "2/4/2020", "1/4/2020", "31/3/2020", "30/3/2020", "29/3/2020",
+                       "28/3/2020", "27/3/2020", "26/3/2020", "25/3/2020", "24/3/2020",
+                       "23/3/2020", "22/3/2020", "21/3/2020", "20/3/2020", "19/3/2020",
+                       "18/3/2020", "17/3/2020", "16/3/2020", "15/3/2020", "14/3/2020",
+                       "13/3/2020", "12/3/2020", "11/3/2020", "10/3/2020")
+date.cases        <- as.Date(date.cases, format = "%d/%m/%Y")
+
+#Adjust model to parameters
+initial.list <- model.from.cummulative.cases(cummulative.cases, 
+                                             date.cases, params.file)
+```
+
+Correremos distintos escenarios del modelo. En primer lugar, un **modelo sin cuarentena**:
+
+```{r}
+#Run model without quarantine
+model.caeteris.paribus <- run.model.continuous(initial.list$params, 
+                                               initial.list$state,  
+                                               init.time = 0, end.time = 1000)
+```
+
+Después un **modelo con aislamiento de 50% de sintomáticos**:
+```{r}
+#Run model with isolation
+params      <- initial.list$params
+params$q2   <- rep(1, 4)/2
+model.start <- run.model.continuous(initial.list$params, 
+                                    initial.list$state,  
+                                    init.time = 0, end.time = 20)
+model.isolation <- run.model.continuous(params, 
+                                        model.start$state,  
+                                        init.time = 20, end.time = 1000)
+model.isolation <- model.bind(list(model.start, model.isolation))
+```
+
+Un **modelo con cuarentena periódica**:
+```{r}
+#Periodic quarantine
+params$q2      <- rep(0, 4)
+model.periodic <- run.model.periodic(params, 
+                                     model.start$state,  
+                                     periodicity = 7, days = 2, 
+                                     quarantine.proportion = 1,
+                                     init.time = 20, end.time = 1000)
+model.periodic <- model.bind(list(model.start, model.periodic))
+```
+
+
+Un modelo **con cuarentena poblacional**:
+
+```{r}
+#Cuarentena poblacional
+state                     <- quarantine_all(model.start$state)
+model.quarantine.all.next <- run.model.continuous(initial.list$params, 
+                                                  state,  
+                                                  init.time = 20, end.time = 110)
+
+#Después de la cuarentena poblacional
+state                     <- unquarantine_all(model.quarantine.all.next$state)
+model.quarantine.all.last <- run.model.continuous(initial.list$params, 
+                                                  state,  
+                                                  init.time = 110, end.time = 1000)
+
+#Juntamos los modelos
+model.quarantine.all <- model.bind(list(model.start, 
+                                        model.quarantine.all.next,
+                                        model.quarantine.all.last))
+```
+
+Y un modelo con cuarentena para mayores de 60:
+
+```{r}
+#Run model with quarantine for individuals > 60
+state              <- quarantine_k(model.start$state, k = c(3,4))
+model.quarantine.k <- run.model.continuous(initial.list$params, 
+                                           state,  
+                                           init.time = 20, end.time = 320)
+
+#Run part where quarantine ends:
+state                   <- unquarantine_k(model.quarantine.k$state, k = c(3,4))
+model.quarantine.k.last <- run.model.continuous(initial.list$params, 
+                                                  state,  
+                                                  init.time = 320, end.time = 1000)
+
+#Bind models
+model.quarantine.k <- model.bind(list(model.start, 
+                                      model.quarantine.k, 
+                                      model.quarantine.k.last))
+```
+
+Finalmente, comparamos todos los modelos en una gráfica:
+
+```{r}
+ggplot() +
+  geom_line(aes(x = time/3, y = I2, 
+                linetype = "Severe cases (hospitalized)", 
+                color = "No Intervention"), 
+            data = model.caeteris.paribus$dats) +
+  geom_line(aes(x = time/3, y = I2, 
+                linetype = "Severe cases (hospitalized)", 
+                color = "Isolation of 50% symptomatic individuals"), 
+            data = model.isolation$dats) +
+  geom_line(aes(x = time/3, y = I2, 
+                linetype = "Severe cases (hospitalized)", 
+                color = "Population Quarantine (100% per 1 month)"), 
+            data = model.quarantine.all$dats) +
+  geom_line(aes(x = time/3, y = I2, 
+                linetype = "Severe cases (hospitalized)", 
+                color = "Periodic 50% population quarantine (2 days/week)"), 
+            data = model.periodic$dats) +
+  geom_line(aes(x = time/3, y = I2, 
+                linetype = "Severe cases (hospitalized)", 
+                color = "Isolation of individuals > 60 (100 days)"), 
+            data = model.quarantine.k$dats) +
+  geom_line(aes(x = time/3, y = I3, 
+                linetype = "Critical cases (ICU)", 
+                color = "No Intervention"), 
+            data = model.caeteris.paribus$dats) +
+  geom_line(aes(x = time/3, y = I3, 
+                linetype = "Critical cases (ICU)", 
+                color = "Isolation of 50% symptomatic individuals"), 
+            data = model.isolation$dats) +
+  geom_line(aes(x = time/3, y = I3, 
+                linetype = "Critical cases (ICU)", 
+                color = "Population Quarantine (100% per 1 month)"), 
+            data = model.quarantine.all$dats) +
+  geom_line(aes(x = time/3, y = I3, 
+                linetype = "Critical cases (ICU)", 
+                color = "Periodic 50% population quarantine (2 days/week)"), 
+            data = model.periodic$dats) +
+  geom_line(aes(x = time/3, y = I3, 
+                linetype = "Critical cases (ICU)", 
+                color = "Isolation of individuals > 60 (100 days)"), 
+            data = model.quarantine.k$dats) +
+  theme_bw() +
+  ggtitle("Effects of distinct isolation and quarantine scenarios") +
+  xlab("Days since the beginning of the pandemic") +
+  ylab("Infected individuals (percent of total population)") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_linetype_manual("Condition", 
+                        values = c("Severe cases (hospitalized)" = "solid",
+                                   "Critical cases (ICU)" = "dotted")) +
+  scale_color_brewer("Intervention", palette = "Dark2")
+```
+
 ## TODO
 
 + Crear gráficas de demanda hospitalaria
 
-+ Agregar fit del paper de Marissa
++ Agregar fit estilo [el paper de Marissa](https://arxiv.org/abs/1501.05555) incluyendo la variable k de la ecuación 3
 
 + Agregar migración
 

@@ -611,10 +611,11 @@ ggplot.epidemiological.lines.all.cat <- function(modelo, title = "Evolución de 
 }
 
 ggplot.cummulative.lines.all <- function(dats, title = "Evolución de COVID-19", 
-                                                 xlab = "Día", 
-                                                 ylab = "Incidencia acumulada de casos", 
-                                                 states = ncol(dats)/11 - 1,
-                                                 date.init = NULL){
+                                         xlab = "Día", 
+                                         ylab = "Incidencia acumulada de casos", 
+                                         states = ncol(dats)/11 - 1,
+                                         vars = c("E","A","I1","I2","I3","M"),
+                                         date.init = NULL){
   
   if (!is.null(date.init)){
     dats$time <- as.Date(dats$time, origin = date.init)
@@ -624,19 +625,46 @@ ggplot.cummulative.lines.all <- function(dats, title = "Evolución de COVID-19",
   
   for (i in 1:states){
     
+    if ("E" %in% vars){
     plot <- plot + 
       geom_line(aes_(x = dats$time, y = dats[,paste0("E",i)],
-                     color = "Exposed (latent)")) +
-      geom_line(aes_(x = dats$time, y = dats[,paste0("A",i)],
-                     color = "Asymptomatic")) +
-      geom_line(aes_(x = dats$time, y = dats[,paste0("I1",i)],
-                     color = "Mild infection")) +
-      geom_line(aes_(x = dats$time, y = dats[,paste0("I2",i)], 
-                     color = "Severe infection")) +
-      geom_line(aes_(x = dats$time, y = dats[,paste0("I3",i)], 
-                     color = "Critical infection")) + 
-      geom_line(aes_(x = dats$time, y = dats[,paste0("M",i)],  
+                     linetype = as.character(i),
+                     color = "Exposed (latent)"))
+    }
+    
+    if ("A" %in% vars){
+      plot <- plot + 
+        geom_line(aes_(x = dats$time, y = dats[,paste0("A",i)],
+                       linetype = as.character(i),
+                       color = "Asymptomatic")) 
+    }
+    
+    if ("I1" %in% vars){
+      plot <- plot + 
+        geom_line(aes_(x = dats$time, y = dats[,paste0("I1",i)],
+                     linetype = as.character(i),
+                     color = "Mild infection")) 
+    }
+    
+    if ("I2" %in% vars){
+      plot <- plot + 
+        geom_line(aes_(x = dats$time, y = dats[,paste0("I2",i)],
+                     linetype = as.character(i),
+                     color = "Severe infection"))
+    }
+    
+    if ("I3" %in% vars){
+      plot <- plot + 
+        geom_line(aes_(x = dats$time, y = dats[,paste0("I3",i)], 
+                     linetype = as.character(i),
+                     color = "Critical infection")) 
+    }
+    
+    if ("M" %in% vars){
+      geom_line(aes_(x = dats$time, y = dats[,paste0("M",i)], 
+                     linetype = as.character(i),
                      color = "Death"))
+    }
   }
   
   return(plot)
