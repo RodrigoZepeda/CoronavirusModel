@@ -496,6 +496,51 @@ ggplot.epidemiological.lines.infected.cat <- function(modelo, title = "Evolució
   
 }
 
+geom_line.variable.from.list <- function(model.list, 
+                                      plot =  ggplot(), varname = "S",
+                                      linetype = "solid",
+                                      color = names(model.list)){
+  
+  
+  k <- 1
+  for (this.model in model.list){
+    plot <- plot + geom_line(aes_string(x = this.model$dats[,"time"], 
+                                        y = this.model$dats[, varname], 
+                                        color = as.factor(color[k])),
+                             linetype = linetype, data = this.model$dats)
+    k <- k + 1
+  }
+  return(plot)
+}
+
+variable.bind <- function(model.list, varname = "dats"){
+  dats <- model.list[[i]][varname]
+  if (length(model.list) > 1){
+    for (i in 2:length(model.list)){
+      dats <- dats %>% bind_rows(model.list[[i]][varname])
+    }
+  }
+  return(dats)
+}
+
+params.bind <- function(model.list){
+  params <- list(model.list[[i]]["params"])
+  if (length(model.list) > 1){
+    for (i in 2:length(model.list)){
+      params <- append(params, model.list[[i]]["params"])
+    }
+  }
+  names(params) <- names(model.list)
+  return(params)
+}
+
+model.bind <- function(model.list){
+  list(dats  = variable.bind(model.list, "dats"),
+       state = variable.bind(model.list, "state"),
+       params = params.bind(model.list))
+}
+
+
 
 
 ggplot.epidemiological.lines.all.cat <- function(modelo, title = "Evolución de COVID-19", 
