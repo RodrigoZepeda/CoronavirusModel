@@ -21,10 +21,11 @@ params       <- initial.list$params
 state        <- initial.list$state
 
 #You can run model with run model.instance
-microbenchmark::microbenchmark(
-  run.model.continuous(params, state,  init.time = 0, end.time = 200),
-  times = 100
-)
+#microbenchmark::microbenchmark(
+model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 200)
+#)
+ggplot.epidemiological.lines.infected(model.1, scale = 120)
+ggplot.epidemiological.lines.infected.cat(model.1)
 
 #And then add quarantine
 state   <- quarantine_all(model.1$state)

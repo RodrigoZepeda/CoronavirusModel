@@ -37,7 +37,7 @@ run.model.continuous <- function(params, state, init.time = 0, end.time = 20,
   colnames(dats) <- c("time", names(state))
   
   #Get ending state
-  end.state      <- dats[nrow(dats),] %>% select(-time)
+  end.state      <- dats[nrow(dats),] %>% dplyr::select(-time)
   
   #Loop agregating data
   age_cats <- ncol(dats)/11
@@ -228,7 +228,7 @@ run.model.periodic <- function(params, state, init.time = 0, end.time = 30,
   
   #Get ending state
   end.state      <- dats.temp[nrow(dats.temp),] %>% 
-    select(-time, -S, -E, -A, -I1, -I2, -I3, -Q, -QE, -QA, -QI, -M)
+    dplyr::select(-time, -S, -E, -A, -I1, -I2, -I3, -Q, -QE, -QA, -QI, -M)
   
   
   return(list(dats = dats.temp, state = end.state, params = params))
@@ -431,18 +431,21 @@ model.aggregate.cummulative <- function(dats.cummulative,  age_cats = (ncol(dats
 
 ggplot.epidemiological.lines.infected <- function(modelo, title = "Evolución de COVID-19", 
                                          xlab = "Día", 
-                                         ylab = "Proporción de casos", 
-                                         date.init = NULL){
+                                         ylab = "Cantidad de casos", 
+                                         date.init = NULL,
+                                         scale = 1){
   
   if (!is.null(date.init)){
     modelo$dats$time <- as.Date(modelo$dats$time, origin = date.init)
   }
   
   ggplot(modelo$dats) + 
-    geom_line(aes(x = time, y = I1 + QI, color = "Mild infection")) +
-    geom_line(aes(x = time, y = I2, color = "Severe infection")) +
-    geom_line(aes(x = time, y = I3, color = "Critical infection")) +
-    theme_classic()
+    geom_line(aes(x = time, y = scale*(I1 + QI), color = "Infección leve")) +
+    geom_line(aes(x = time, y = scale*I2, color = "Infección severa")) +
+    geom_line(aes(x = time, y = scale*I3, color = "Infección crítica")) +
+    theme_classic() + xlab(xlab) + ylab(ylab) +
+    scale_color_brewer("Etapas de la enfermedad", palette = "Dark2") +
+    scale_y_continuous(labels = function(x) format(x, scientific = F))
   
 }
 

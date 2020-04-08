@@ -89,7 +89,7 @@ read.parameters <- function(params.file = "parameters.csv", estimate.saturation 
       QI = rep(0, ncol(data.parameters))
     )
     
-    return(list(params = parameter.list, state = state.vec))
+    return(list(params = parameter.list, state = as.data.frame(t(state.vec))))
     
   })
   
