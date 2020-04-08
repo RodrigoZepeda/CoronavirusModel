@@ -151,22 +151,22 @@ unquarantine_all <- function(state, age_cats = length(state)/11, unquarantine.pr
 }
 
 rnought.change.gamma.1 <- function(R0, params){
-  params$gamma.1 <- R0/params$gamma.E
+  params$gamma.1 <- R0*params$gamma.E
   return(params)
 }
 
 rnought.change.gamma.A <- function(R0, params){
-  params$gamma.A <- R0/params$gamma.E
+  params$gamma.A <- R0*params$gamma.E
   return(params)
 }
 
 rnought.change.gamma.2 <- function(R0, params){
-  params$gamma.2 <- R0/params$gamma.E
+  params$gamma.2 <- R0*params$gamma.E
   return(params)
 }
 
 rnought.change.gamma.3 <- function(R0, params){
-  params$gamma.3 <- R0/params$gamma.E
+  params$gamma.3 <- R0*params$gamma.E
   return(params)
 }
 
@@ -240,9 +240,9 @@ cummulative.cases.I1.k <- function(modelo, k){
   params <- modelo$params
   dats   <- modelo$dats
   I1.cummulative.k <- with(params,{
-    (1 - p.A[k])*gamma.E[k]*dats[,paste0("E",k)]
+    (1 - p.A[k])*gamma.E[k]*(dats[,paste0("E",k)] + dats[,paste0("QE",k)])
   })
-  I1.cummulative.k <- cumsum(I1.cummulative.k)
+  I1.cummulative.k <- integrate.cummulative(modelo$dats$time, I1.cummulative.k)
   return(I1.cummulative.k)
   
 }
@@ -259,6 +259,16 @@ cummulative.cases.I1 <- function(modelo, age_cats = ncol(modelo$dats)/11 - 1){
   
 }
 
+integrate.cummulative <- function(time, variable){
+  integration <- rep(0, length(time))
+  if (length(time) > 1){
+    for (i in 2:length(time)){
+      integration[i] <- integrate.xy(time[1:i], variable[1:i])
+    }
+  }
+  return(integration)
+}
+
 cummulative.cases.I2.k <- function(modelo, k){
   
   params <- modelo$params
@@ -266,7 +276,7 @@ cummulative.cases.I2.k <- function(modelo, k){
   I2.cummulative.k <- with(params,{
     p.I2[k]*beta.1to2[k]*(dats[,paste0("QI",k)] + dats[,paste0("I1",k)])
   })
-  I2.cummulative.k <- cumsum(I2.cummulative.k)
+  I2.cummulative.k <- integrate.cummulative(modelo$dats$time, I2.cummulative.k)
   return(I2.cummulative.k)
   
 }
@@ -292,7 +302,7 @@ cummulative.cases.I3.k <- function(modelo, k){
     
     I3.cummulative.k <- 0
     
-    for (j in 1:(nrow(dats)-1)){
+    for (j in 1:nrow(dats)){
       
       #Check if UCI are saturated
       if (dats[j,"I2"] > saturationI2){
@@ -303,14 +313,10 @@ cummulative.cases.I3.k <- function(modelo, k){
         beta.2to3 <- beta.2to3.not.saturated
       }
       
-      if (j == 1){
-        I3.cummulative.k[j] <- p.I3[k]*beta.2to3[k]*dats[j,paste0("I2",k)]
-      }
-      
-      I3.cummulative.k[j + 1] <- I3.cummulative.k[j] + p.I3[k]*beta.2to3[k]*dats[j,paste0("I2",k)]
+      I3.cummulative.k[j] <- p.I3[k]*beta.2to3[k]*dats[j,paste0("I2",k)]
     }
     
-    I3.cummulative.k
+    I3.cummulative.k <- integrate.cummulative(modelo$dats$time, I3.cummulative.k)
   })
   
   return(I3.cummulative.k)
@@ -336,7 +342,7 @@ cummulative.cases.A.k <- function(modelo, k){
   A.cummulative.k <- with(params,{
     p.A[k]*gamma.E[k]*dats[,paste0("E",k)]
   })
-  A.cummulative.k <- cumsum(A.cummulative.k)
+  A.cummulative.k <- integrate.cummulative(modelo$dats$time, A.cummulative.k)
   return(A.cummulative.k)
   
 }
@@ -358,12 +364,18 @@ cummulative.cases.E.k <- function(modelo, k){
   params <- modelo$params
   dats   <- modelo$dats
   
-  #Loopeamos para la tasa de contagio
   E.cummulative.k <- with(params,{
-    (gamma.1[k]*dats[,paste0("I1",k)] + gamma.2[k]*dats[,paste0("I2",k)] + 
-      gamma.3[k]*dats[,paste0("I3",k)] + gamma.A[k]*dats[,paste0("A",k)])*dats[,paste0("S",k)]
+    #Loopeamos para la tasa de contagio
+    Isum <- 0
+    for (j in 1:age_cats){
+      Isum <- Isum + gamma.1[j]*dats[,paste0("I1",j)] + 
+        gamma.2[j]*dats[,paste0("I2",j)] + 
+        gamma.3[j]*dats[,paste0("I3",j)] + 
+        gamma.A[j]*dats[,paste0("A",j)]
+    }
+    Isum*dats[,paste0("S",k)]
   })
-  E.cummulative.k <- cumsum(E.cummulative.k)
+  E.cummulative.k <- integrate.cummulative(modelo$dats$time, E.cummulative.k)
   return(E.cummulative.k)
   
 }
@@ -613,24 +625,77 @@ ggplot.cummulative.lines.all <- function(dats, title = "Evolución de COVID-19",
   for (i in 1:states){
     
     plot <- plot + 
-      geom_line(aes_(x = dats$time, y = dats[,paste0("E",i)],# + dats[,paste0("QE",i)], 
-                     linetype = as.character(i), color = "Exposed (latent)")) +
-      geom_line(aes_(x = dats$time, y = dats[,paste0("A",i)],# + dats[,paste0("QA",i)], 
-                     linetype = as.character(i), color = "Asymptomatic")) +
-      geom_line(aes_(x = dats$time, y = dats[,paste0("I1",i)],# + dats[,paste0("QI",i)], 
-                     linetype = as.character(i), color = "Mild infection")) +
+      geom_line(aes_(x = dats$time, y = dats[,paste0("E",i)],
+                     color = "Exposed (latent)")) +
+      geom_line(aes_(x = dats$time, y = dats[,paste0("A",i)],
+                     color = "Asymptomatic")) +
+      geom_line(aes_(x = dats$time, y = dats[,paste0("I1",i)],
+                     color = "Mild infection")) +
       geom_line(aes_(x = dats$time, y = dats[,paste0("I2",i)], 
-                     linetype = as.character(i), color = "Severe infection")) +
+                     color = "Severe infection")) +
       geom_line(aes_(x = dats$time, y = dats[,paste0("I3",i)], 
-                     linetype = as.character(i), color = "Critical infection")) 
-    geom_line(aes_(x = dats$time, y = dats[,paste0("M",i)],  
-                   linetype = as.character(i), color = "Death"))
+                     color = "Critical infection")) + 
+      geom_line(aes_(x = dats$time, y = dats[,paste0("M",i)],  
+                     color = "Death"))
   }
   
   return(plot)
   
 }
 
+time.to.saturation.variable <- function(model, varname = "I2", 
+                                        saturation.value = model$params$saturationI2){
+  
+  #Check if saturation occurs
+  saturation <- which(model$dats[varname] > saturation.value)
+  
+  if (length(saturation) == 0){
+    saturation.time <- Inf
+  } else {
+    saturation.time <- model$dats$time[min(saturation)]
+  }
+  
+  return(saturation.time)
+  
+}
+
+time.of.peak.variable <- function(model, varname = "I1"){
+  
+  #Get peak value
+  peak.value   <- max(model$dats[varname])
+  
+  #Get where peak value occurs
+  peak.time <- model$dats$time[which(model$dats[varname] == peak.value)]
+  
+  #Vector
+  peak.vars    <- c(peak.value, peak.time)
+  names(peak.vars) <- c(paste("Peak of", varname), paste("Time to peak of", varname))
+  
+  return(peak.vars)
+  
+}
+
+time.of.peak <- function(model){
+  
+  #Calcular infectados totales
+  list(
+    "Mild"     = time.of.peak.variable(model, "I1"),
+    "Severe"   = time.of.peak.variable(model, "I2"),
+    "Critical" = time.of.peak.variable(model, "I3")
+  )
+  
+} 
+
+
+
+time.to.saturation <- function(model, 
+                               saturation.values = c("I2" = model$params$saturationI2,
+                                                     "I3" = model$params$saturationI3)){
+  
+  c("I2" = time.to.saturation.variable(model, "I2", saturation.values["I2"]),
+    "I3" = time.to.saturation.variable(model, "I3", saturation.values["I3"]))
+  
+}
 
 
 

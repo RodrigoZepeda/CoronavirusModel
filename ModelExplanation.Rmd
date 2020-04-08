@@ -2,7 +2,10 @@
 title: "Modelo de M clases (edad/grupo socioeconómico/comorbilidad) con distintos escenarios de cuarentena y desabasto hospitalario para COVID-19"
 author: "Equipo de modelaje del coronavirus"
 date: "Last Update `r Sys.time()`"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
 header-includes:
 - \usepackage{placeins}
 bibliography: references.bib
@@ -20,6 +23,10 @@ library(tidyverse)
 library(sfsmisc)
 library(kableExtra)
 library(cowplot)
+library(R0)
+library(plyr)
+library(mgcv)
+
 #Working directory
 dir <- "~/Dropbox/Coronavirus/ModelbyCategoriesMarch30"
 params.file   <- "parameters.csv"
@@ -29,10 +36,16 @@ setwd(dir)
 source("modelo.edad.R")
 source("read.parameters.R")
 source("auxiliary.functions.R")
+source("estimation.functions.R")
 ```
 
-<!--License -->
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
+### Licencias
+
+El código está bajo una licencia Aladdin Free Public License la cual permite el uso gratuito del mismo y su reproducción verbatim _sin posibilidad de venta_. El modelo y este documento se encuentran bajo una licencia de creative commons attribution sharealike no comercial. 
+
+> Cualquier uso del modelo o el código debe dar atribución a sus creadores. 
+
+
 
 ## Modelo
 
@@ -204,7 +217,7 @@ state        <- initial.list$state
 Para correr el modelo basta con ejecutar el siguiente código
 ```{r, warning = FALSE}
 #You can run model with run model.instance
-ode.model <- run.model.continuous(params, state,  init.time = 0, end.time = 100)
+ode.model <- run.model.continuous(params, state,  init.time = 0, end.time = 150)
 ```
 
 Y graficar los casos infectados totales
@@ -220,6 +233,11 @@ ggplot.epidemiological.lines.infected(ode.model, infect.cats = c("I2","I3"))
 El modelo es un modelo por categorías por tanto también se puede generar una gráfica de los estados infectados por categoría:
 ```{r}
 ggplot.epidemiological.lines.infected.cat(ode.model)
+```
+
+El tiempo para el pico se puede calcular mediante:
+```{r}
+time.of.peak(ode.model)
 ```
 
 ### Variaciones de política
@@ -241,47 +259,47 @@ El modelo permite implementar distintas opciones de política en distintos secto
 
 ```{r, warning = FALSE}
 #You can run model with run model.instance
-model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 20)
+model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 40)
 ```
 
 
 ```{r, warning = FALSE}
 #And then add quarantine
 state   <- quarantine_all(model.1$state)
-model.2 <- run.model.continuous(params, state, init.time = 20, end.time = 30)
+model.2 <- run.model.continuous(params, state, init.time = 40, end.time = 70)
 ```
 
 ```{r, warning = FALSE}
 #Then continue model wth periodic quarantine
 state   <- unquarantine_all(model.2$state)
-model.3 <- run.model.periodic(params, state, init.time = 30, end.time = 50,
+model.3 <- run.model.periodic(params, state, init.time = 70, end.time = 120,
                                   periodicity = 7, days = 2)
 ```
 
 ```{r, warning = FALSE}
 #Change R0
 params  <- rnought.change.gamma.1(1.2, params)
-model.4 <- run.model.continuous(params, model.3$state, init.time = 50, end.time = 60)
+model.4 <- run.model.continuous(params, model.3$state, init.time = 120, end.time = 150)
 ```
 
 ```{r, warning = FALSE}
 #And then add quarantine
 state   <- quarantine_all(model.4$state)
 params  <- rnought.change.gamma.1(2.1, params)
-model.5 <- run.model.continuous(params, state, init.time = 60, end.time = 70)
+model.5 <- run.model.continuous(params, state, init.time = 150, end.time = 175)
 ```
 
 ```{r, warning = FALSE}
 #And then add quarantine for specific subgroups
 state   <- quarantine_k(model.5$state, k = c(3,4))
-model.6 <- run.model.continuous(params, state, init.time = 70, end.time = 80)
+model.6 <- run.model.continuous(params, state, init.time = 175, end.time = 200)
 ```
 
 ```{r, warning = FALSE}
 #Add quarantine only to infected
 params$q2 <- rep(1/2, 4)
-model.7   <- run.model.continuous(params, model.6$state, init.time = 80, 
-                                  end.time = 100)
+model.7   <- run.model.continuous(params, model.6$state, init.time = 200, 
+                                  end.time = 250)
 ```
 
 ```{r, warning = FALSE}
@@ -346,6 +364,12 @@ params$saturationI3 <- 0.0001
 saturated.model <- run.model.continuous(params, state,  init.time = 0, end.time = 100)
 ```
 
+La función de tiempo para saturación estima la cantidad de días para saturación del sistema para hospitalizados y cuidado intensivo:
+
+```{r}
+time.to.saturation(saturated.model)
+```
+
 Si se desea correr el modelo sin saturación basta poner los parámetros de saturación en infinito:
 
 ```{r}
@@ -404,8 +428,8 @@ state        <- initial.list$state
 #You can run model with run model.instance
 model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 20)
 model.2 <- run.model.continuous(params, model.1$state,  init.time = 20, end.time = 30)
-model.3 <- run.model.continuous(params, model.2$state,  init.time = 30, end.time = 40)
-model.4 <- run.model.continuous(params, model.3$state,  init.time = 40, end.time = 100)
+model.3 <- run.model.continuous(params, model.2$state,  init.time = 30, end.time = 70)
+model.4 <- run.model.continuous(params, model.3$state,  init.time = 70, end.time = 200)
 
 model.list <- list("Escenario 1" = model.1, "Escenario 2" = model.2,
                    "Escenario 3" = model.3,
@@ -431,16 +455,115 @@ También se puede usar la función `geom_line.variable.from.list` para poner lí
 
 ```{r}
 plot <- geom_line.variable.from.list(model.list, varname = "I1") 
-plot <- geom_line.variable.from.list(model.list, plot, "I2")
-plot <- geom_line.variable.from.list(model.list, plot, "I3")
+plot <- geom_line.variable.from.list(model.list, plot, "I2", linetype = "dashed")
+plot <- geom_line.variable.from.list(model.list, plot, "I3", linetype = "dotted")
 plot + theme_bw()
 ```
 
+## Estimación estadística
+
+El $R_0$ puede estimarse a partir de los casos acumulados y la fecha mediante:
+
+```{r}
+#Casos acumulados de México:
+cummulative.cases <- c(2785, 2439, 2143, 1890, 1688, 1510, 1378, 1215, 1094, 
+                       993, 848, 717, 585, 475, 405, 367, 316, 251, 203, 164, 
+                       118, 93, 82, 53, 41, 26, 15, 11, 7)
+date.cases        <- c("7/4/2020", "6/4/2020", "5/4/2020", "4/4/2020", "3/4/2020",
+                       "2/4/2020", "1/4/2020", "31/3/2020", "30/3/2020", "29/3/2020",
+                       "28/3/2020", "27/3/2020", "26/3/2020", "25/3/2020", "24/3/2020",
+                       "23/3/2020", "22/3/2020", "21/3/2020", "20/3/2020", "19/3/2020",
+                       "18/3/2020", "17/3/2020", "16/3/2020", "15/3/2020", "14/3/2020",
+                       "13/3/2020", "12/3/2020", "11/3/2020", "10/3/2020")
+date.cases        <- as.Date(date.cases, format = "%d/%m/%Y")
+
+#Estimación del R0
+R0 <- estimate.R0(cummulative.cases, date.cases)
+
+```
+
+El cual puede verse en la siguiente tabla:
+```{r}
+kable(tail(R0)) %>%  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+O bien puede graficarse el R0:
+```{r}
+plot.R0(R0)
+```
+
+La estimación de casos diarios puede hacerse mediante un modelo Poisson:
+
+```{r}
+
+dats <- data.frame(
+  Fecha = rev(date.cases),
+  n = c(7,4,4,11,15,12, 29, 11, 25, 26, 39, 48, 65, 51, 38, 70, 110, 132,
+        131, 145, 101, 121, 163, 132, 178, 202, 253, 296, 346))
+
+predicted.cases <- estimate.daily.cases(dats, dias.predict = 10, 
+                                        confidence = 0.99, nsim = 1000)
+```
+
+```{r}
+kable(tail(predicted.cases)) %>%  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+La estimación de casos acumulados (no recomendada) se puede hacer mediante la función `estimate.cummulative.cases`:
+
+```{r}
+dats              <- dats %>% mutate(Cummulative = cumsum(n))
+pred.cummulative.cases <- estimate.cummulative.cases(dats, nsim = 100)
+```
+
+```{r}
+kable(tail(pred.cummulative.cases)) %>%  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+Existen funciones de graficación tanto para los casos diarios como los acumulados:
+
+```{r, warning=FALSE}
+plot.cummulative.cases(pred.cummulative.cases)
+```
+
+Podemos graficar de igual forma los casos puntuales estimados:
+```{r, warning=FALSE}
+plot.predicted.cases(predicted.cases)
+```
+
+El modelo puede ser ajustado a partir de los datos iniciales:
+```{r}
+initial.list <- model.from.cummulative.cases(cummulative.cases, 
+                                             date.cases, params.file)
+```
+
+Modelo que se corre extactamente igual:
+```{r}
+model.A <- run.model.continuous(initial.list$params, 
+                                initial.list$state,  init.time = 0, end.time = 65)
+```
+
+
+Recordemos que se puede graficar y los objetos son cosas de ggplot:
+```{r}
+numero.personas <- 120000000
+ggplot.epidemiological.lines.infected(model.A, infect.cats = c("I2","I3"),
+                                      scale = numero.personas,
+                                      date.init = date.cases[length(date.cases)]) +
+  geom_hline(aes(yintercept = 1000), linetype = "dotted") +
+  annotate("text", label = "UCI Disponibles", x = date.cases[length(date.cases)],
+           y = 1200, hjust = 0) + 
+  ggtitle("Casos estimados por tipo de infección") +
+  theme_bw()
+```
 ## TODO
 
 + Crear gráficas de demanda hospitalaria
 
++ Agregar fit del paper de Marissa
+
 + Agregar migración
+
 
 ## Colaboración
 Para colaborar en el modelo requieres conocimiento de epidemiología matemática,
@@ -453,5 +576,8 @@ Traducciones bienvenidas.
 ## Código
 
 Ver código en [Github](https://github.com/RodrigoZepeda/CoronavirusModel)
+
+<!--License -->
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
 
 ## Referencias

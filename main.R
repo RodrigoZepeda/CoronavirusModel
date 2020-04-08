@@ -22,14 +22,10 @@ state        <- initial.list$state
 
 #You can run model with run model.instance
 #microbenchmark::microbenchmark(
-model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 200)
-#)
-ggplot.epidemiological.lines.infected(model.1, scale = 120)
-
-ggplot() + geom_line(aes(x = model.1$dats$time, y = model.1$dats$I11, color = "1")) +
-  geom_line(aes(x = model.1$dats$time, y = model.1$dats$I12, color = "2"))
-
-ggplot.epidemiological.lines.infected.cat(model.1)
+params$saturationI2 <- 0.001
+params$saturationI3 <- 0.0001
+model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 100)
+time.to.saturation(model.1)
 
 #And then add quarantine
 state   <- quarantine_all(model.1$state)
@@ -50,10 +46,7 @@ params  <- rnought.change.gamma.1(2.1, params)
 model.5 <- run.model.continuous(params, state, init.time = 60, end.time = 120)
 
 #Get cummulative cases for model 5
-acumulados.1 <- cummulative.cases(model.1)
-
-ggplot(acumulados.1) +
-  geom_line(aes(x = time, y = M))
+sum(model.1$dats[nrow(model.1$dats),-c(1)])
 
 
 ggplot() +
