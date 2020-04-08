@@ -78,12 +78,12 @@ read.parameters <- function(params.file = "parameters.csv", estimate.saturation 
     state.vec <- c(
       S  = as.numeric(data.parameters["Initial susceptible cases",]),
       E  = as.numeric(data.parameters["Initial latent cases",]),
+      A  = as.numeric(data.parameters["Initial asymptomatic cases",]),
       I1 = as.numeric(data.parameters["Initial mild cases",]),
       I2 = as.numeric(data.parameters["Initial severe cases",]),
       I3 = as.numeric(data.parameters["Initial critical cases",]),
-      A  = as.numeric(data.parameters["Initial asymptomatic cases",]),
       M  = rep(0, ncol(data.parameters)),
-      Q  = rep(0, ncol(data.parameters)),
+      QS = rep(0, ncol(data.parameters)),
       QE = rep(0, ncol(data.parameters)),  
       QA = rep(0, ncol(data.parameters)), 
       QI = rep(0, ncol(data.parameters))

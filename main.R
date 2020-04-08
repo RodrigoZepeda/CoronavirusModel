@@ -25,6 +25,10 @@ state        <- initial.list$state
 model.1 <- run.model.continuous(params, state,  init.time = 0, end.time = 200)
 #)
 ggplot.epidemiological.lines.infected(model.1, scale = 120)
+
+ggplot() + geom_line(aes(x = model.1$dats$time, y = model.1$dats$I11, color = "1")) +
+  geom_line(aes(x = model.1$dats$time, y = model.1$dats$I12, color = "2"))
+
 ggplot.epidemiological.lines.infected.cat(model.1)
 
 #And then add quarantine

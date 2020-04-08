@@ -82,7 +82,7 @@ model <- function(t, y, parameters){
       #Infectados 1 (leves)
       #dI1/dt[k] =  (1 - p.A[k])*gamma.E[k]*E[k] - (p.I2[k]*beta.1to2[k] + (1 - p.I2[k])*beta.1toR[k])*I1[k]
       dy[I1pos + k] <- (1 - p.A[k])*gamma.E[k]*y[Epos + k] - (p.I2[k]*beta.1to2[k] + 
-        (1 - p.I2[k])*beta.1toR[k] - q2[k])*y[I1pos + k]
+        (1 - p.I2[k])*beta.1toR[k] + q2[k])*y[I1pos + k]
       
       #Infectados 2 (graves)
       #dI2/dt[k] = p.I2[k]*beta.1to2[k]*(Q2[k] + I1[k]) - (p.I3[k]*beta.2to3[k] + (1 - p.I3[k])*beta.2toR[k])*I2[k]
@@ -108,8 +108,8 @@ model <- function(t, y, parameters){
       dy[QApos + k] <- p.A[k]*gamma.E[k]*y[QEpos + k] - beta.AtoR[k]*y[QApos + k]
       
       #Cuarentena de infectados
-      dy[QIpos + k] <- (1 - p.A[k])*gamma.E[k]*y[QEpos + k] - 
-        (p.I2[k]*beta.1to2[k] + (1 - p.I2[k])*beta.1toR[k])*y[QIpos + k]
+      dy[QIpos + k] <- (1 - p.A[k])*gamma.E[k]*y[QEpos + k] + 
+        q2[k]*y[I1pos + k]- (p.I2[k]*beta.1to2[k] + (1 - p.I2[k])*beta.1toR[k])*y[QIpos + k]
       
     }
     

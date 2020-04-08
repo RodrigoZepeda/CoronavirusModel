@@ -41,7 +41,7 @@ run.model.continuous <- function(params, state, init.time = 0, end.time = 20,
   
   #Loop agregating data
   age_cats <- ncol(dats)/11
-  for (var in c("S","E","A","I1","I2","I3","Q","QE","QA","QI","M")){
+  for (var in c("S","E","A","I1","I2","I3","QS","QE","QA","QI","M")){
     dats <- model.aggregate.data(dats, variable = var, age_cats = age_cats)
   }
   
@@ -64,7 +64,7 @@ quarantine_k <- function(state, age_cats = length(state)/11, k = 1:age_cats,
                        Mild = "I1")
   
   q.col.name <- switch(quarantine.type,
-                       Susceptible  = "Q",
+                       Susceptible  = "QS",
                        Exposed      = "QE",
                        Asymptomatic = "QA",
                        Mild = "QI")
@@ -81,7 +81,6 @@ quarantine_k <- function(state, age_cats = length(state)/11, k = 1:age_cats,
   
   return(state)
 }
-
 
 #Function to quarantine all
 quarantine_all <- function(state, age_cats = length(state)/11, quarantine.proportion = 1){
@@ -116,7 +115,7 @@ unquarantine_k <- function(state, age_cats = length(state)/11, k = 1:age_cats,
                        Mild = "I1")
   
   q.col.name <- switch(quarantine.type,
-                       Susceptible  = "Q",
+                       Susceptible  = "QS",
                        Exposed      = "QE",
                        Asymptomatic = "QA",
                        Mild = "QI")
@@ -228,7 +227,7 @@ run.model.periodic <- function(params, state, init.time = 0, end.time = 30,
   
   #Get ending state
   end.state      <- dats.temp[nrow(dats.temp),] %>% 
-    dplyr::select(-time, -S, -E, -A, -I1, -I2, -I3, -Q, -QE, -QA, -QI, -M)
+    dplyr::select(-time, -S, -E, -A, -I1, -I2, -I3, -QS, -QE, -QA, -QI, -M)
   
   
   return(list(dats = dats.temp, state = end.state, params = params))
@@ -433,16 +432,27 @@ ggplot.epidemiological.lines.infected <- function(modelo, title = "Evolución de
                                          xlab = "Día", 
                                          ylab = "Cantidad de casos", 
                                          date.init = NULL,
+                                         infect.cats = c("I1","I2","I3"),
                                          scale = 1){
   
   if (!is.null(date.init)){
     modelo$dats$time <- as.Date(modelo$dats$time, origin = date.init)
   }
   
-  ggplot(modelo$dats) + 
-    geom_line(aes(x = time, y = scale*(I1 + QI), color = "Infección leve")) +
-    geom_line(aes(x = time, y = scale*I2, color = "Infección severa")) +
-    geom_line(aes(x = time, y = scale*I3, color = "Infección crítica")) +
+  plot <- ggplot(modelo$dats) 
+  if ("I1" %in% infect.cats){
+    plot <- plot + geom_line(aes(x = time, y = scale*(I1 + QI), color = "Infección leve")) 
+  }
+  
+  if ("I2" %in% infect.cats){
+    plot <- plot + geom_line(aes(x = time, y = scale*I2, color = "Infección severa")) 
+  }
+  
+  if ("I3" %in% infect.cats){
+    plot <- plot + geom_line(aes(x = time, y = scale*I3, color = "Infección crítica")) 
+  }
+    
+  plot + 
     theme_classic() + xlab(xlab) + ylab(ylab) +
     scale_color_brewer("Etapas de la enfermedad", palette = "Dark2") +
     scale_y_continuous(labels = function(x) format(x, scientific = F))
@@ -459,7 +469,7 @@ ggplot.epidemiological.lines.all <- function(modelo, title = "Evolución de COVI
   }
   
   ggplot(modelo$dats) + 
-    geom_line(aes(x = time, y = S  + Q,  color = "Susceptibles")) +
+    geom_line(aes(x = time, y = S  + QS,  color = "Susceptibles")) +
     geom_line(aes(x = time, y = E  + QE, color = "Exposed (latent)")) +
     geom_line(aes(x = time, y = A  + QA, color = "Asymptomatic")) +
     geom_line(aes(x = time, y = I1 + QI, color = "Mild infection")) +
@@ -514,7 +524,7 @@ geom_line.variable.from.list <- function(model.list,
 }
 
 variable.bind <- function(model.list, varname = "dats"){
-  dats <- model.list[[i]][varname]
+  dats <- model.list[[1]][varname]
   if (length(model.list) > 1){
     for (i in 2:length(model.list)){
       dats <- dats %>% bind_rows(model.list[[i]][varname])
@@ -524,7 +534,7 @@ variable.bind <- function(model.list, varname = "dats"){
 }
 
 params.bind <- function(model.list){
-  params <- list(model.list[[i]]["params"])
+  params <- list(model.list[[1]]["params"])
   if (length(model.list) > 1){
     for (i in 2:length(model.list)){
       params <- append(params, model.list[[i]]["params"])
@@ -540,7 +550,18 @@ model.bind <- function(model.list){
        params = params.bind(model.list))
 }
 
-
+cummulative.bind <- function(model.list){
+  dats <- cummulative.cases(model.list[[1]])
+  if (length(model.list) > 1){
+    for (i in 2:length(model.list)){
+      acumulados         <- cummulative.cases(model.list[[i]])
+      for (k in 2:ncol(acumulados))
+      acumulados[,k] <- acumulados[,k] + dats[nrow(dats),k]
+      dats <- dats %>% bind_rows(acumulados)
+    }
+  }
+  return(dats)
+}
 
 
 ggplot.epidemiological.lines.all.cat <- function(modelo, title = "Evolución de COVID-19", 
@@ -558,7 +579,7 @@ ggplot.epidemiological.lines.all.cat <- function(modelo, title = "Evolución de 
   for (i in 1:states){
     
     plot <- plot + 
-              geom_line(aes_(x = modelo$dats$time, y = modelo$dats[,paste0("S",i)] + modelo$dats[,paste0("Q",i)],  
+              geom_line(aes_(x = modelo$dats$time, y = modelo$dats[,paste0("S",i)] + modelo$dats[,paste0("QS",i)],  
                             color =  as.character(i), linetype = "Susceptible")) +
               geom_line(aes_(x = modelo$dats$time, y = modelo$dats[,paste0("E",i)] + modelo$dats[,paste0("QE",i)], 
                             color = as.character(i), linetype = "Exposed (latent)")) +
@@ -592,17 +613,18 @@ ggplot.cummulative.lines.all <- function(dats, title = "Evolución de COVID-19",
   for (i in 1:states){
     
     plot <- plot + 
-      geom_line(aes_(x = dats$time, y = dats[,paste0("E",i)] + dats[,paste0("QE",i)], 
-                     color = as.character(i), linetype = "Exposed (latent)")) +
-      geom_line(aes_(x = dats$time, y = dats[,paste0("A",i)] + dats[,paste0("QA",i)], 
-                     color = as.character(i), linetype = "Asymptomatic")) +
-      geom_line(aes_(x = dats$time, y = dats[,paste0("I1",i)] + dats[,paste0("QI",i)], color = as.character(i), linetype = "Mild infection")) +
+      geom_line(aes_(x = dats$time, y = dats[,paste0("E",i)],# + dats[,paste0("QE",i)], 
+                     linetype = as.character(i), color = "Exposed (latent)")) +
+      geom_line(aes_(x = dats$time, y = dats[,paste0("A",i)],# + dats[,paste0("QA",i)], 
+                     linetype = as.character(i), color = "Asymptomatic")) +
+      geom_line(aes_(x = dats$time, y = dats[,paste0("I1",i)],# + dats[,paste0("QI",i)], 
+                     linetype = as.character(i), color = "Mild infection")) +
       geom_line(aes_(x = dats$time, y = dats[,paste0("I2",i)], 
-                     color = as.character(i), linetype = "Severe infection")) +
+                     linetype = as.character(i), color = "Severe infection")) +
       geom_line(aes_(x = dats$time, y = dats[,paste0("I3",i)], 
-                     color = as.character(i), linetype = "Critical infection")) 
+                     linetype = as.character(i), color = "Critical infection")) 
     geom_line(aes_(x = dats$time, y = dats[,paste0("M",i)],  
-                   color = as.character(i), linetype = "Death"))
+                   linetype = as.character(i), color = "Death"))
   }
   
   return(plot)
