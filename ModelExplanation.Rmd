@@ -31,7 +31,7 @@ knitr::include_graphics('SEIQAR2.png')
 ```
 
 Se desarrolló un modelo multigrupo SEIRS para describir la propagación del COVID-19 en México, asumiendo distintos escenarios de cuarentena . El modelo presentado toma en cuenta la heterogeneidad del estado de infección, es decir, los grupos de variantes clínicos que pueden ocurrir cuando se contrae la enfermedad. También se considera que la población se puede dividir en *m* clases, que pueden referirse tanto a grupos de edad, clases socioeconómicas o la mezcla de las anteriores. Cada grupo $k$, donde $1≤ k ≤m$, es a su vez particionado en compartimientos
-donde $S_k$ representa a los individuos susceptibles, $E_k$ a los individuos en periodo latente, $A_k$ a los asintómaticos, $I_k$ a los individuos que han sido infectados, $I_{1, k}$ representa a los infectados con síntomas leves, $I_{2,k}$ a los infectados en estado grave, $I_{3,k}$ a infectados en estado crítico, $M_{k}$ representa el número de muertos de individuos en estado crítico y $R_k$ a los individuos recuperados. Las cuarentenas son divididas en dos tipos: la primera representa una cuarentena voluntaria, donde un porcentaje $Q_{S,k}$ de la población susceptible y de la población asintomática ($Q_{1,k}$) entra en aislamiento; la segunda cuarentena se compone de los pacientes infectados con síntomas leves $Q_{2,k}$ y se considera que sólo un porcentaje de la población entrará a este grupo. La Figura 1 describe el modelo de compartimientos utilizado. [-@arXiv_v2, -@arXiv_v1]
+donde $S_k$ representa a los individuos susceptibles; $E_k$ a los individuos en periodo latente; $I_k = \sum_{j=0}^{k}$ representa a los individuos que han sido infectados, donde $I_{0,k}$ son individuos asintómaticos, $I_{1, k}$ individuos con síntomas leves, $I_{2,k}$  individuos en estado grave e $I_{3,k}$ individuos en estado crítico; $M_{k}$ representa el número de muertos de individuos en estado crítico y $R_k$ a los individuos recuperados. Las cuarentenas son divididas en dos tipos: la primera representa una cuarentena voluntaria, donde un porcentaje de la población susceptible ($Q_{S,k}$), de la población asintomática ($Q_{0,k}$) y un porcentaje de la población en estado latente ($Q_{E,k}$) entra en aislamiento; la segunda cuarentena se compone de los pacientes infectados con síntomas leves $Q_{2,k}$ y se considera que sólo un pequeño porcentaje de la población entrará a este grupo. La Figura 1 describe el modelo de compartimientos utilizado. 
 
 Las variables del modelo son:
 
@@ -52,44 +52,54 @@ Las variables del modelo son:
 
 
 ### Ecuaciones
-Si consideramos que la población es dividida en *m* grupos (grupos de edad, nivel socioeconómico o cualquier otra variable de interés)
+Si consideramos que la población es dividida en *m* grupos (grupos de edad, nivel socioeconómico o cualquier otra variable de interés):
 
 \begin{eqnarray}
-    \dfrac{dS_k}{dt} & = & \Gamma_{S,k} - {\alpha_k(t)\,} \sum_{\ell = 1}^{m} \bigg( \sum_{j = 0}^{3} \gamma_{j,\ell} I_{j,\ell} \bigg) \cdot S_k  \\
-    &&{- \sum_{i = 1}^\infty q_{i,k} \cdot S_k(\tau_{i,k}^\text{init})
+    \dfrac{dS_k}{dt} & = & \Gamma_{S,k} - {\alpha_k(t)\,} \sum_{\ell = 1}^{m} \bigg( \sum_{j = 0}^{3} \gamma_{j,\ell} I_{j,\ell} \bigg) \cdot S_k \nonumber \\
+    &&{- \sum_{i = 1}^\infty q_{i,k} \cdot S_k(\tau_{i,k}^\text{init}) \cdot
     \Big(\delta(t - \tau_{i,k}^\text{init}) - \delta(t - \tau_{i,k}^\text{final}) \Big),
     } \label{eq:Sk} \\
-    \dfrac{dE_k}{dt} & = & \Gamma_{E,k} + {\alpha_k(t)\,} \sum_{\ell = 1}^{m} \bigg( \sum_{j = 0}^{3} \gamma_{j,\ell} I_{j,\ell} \bigg) \cdot S_k - \gamma_{E,k} E_k, \label{eq:Ek} \\
-    \dfrac{dI_{0,k}}{dt} & = & \Gamma_{A,k} +  p_{A,k} \cdot \gamma_{E,k} \cdot E_k - \beta_{A \to R, k} \cdot I_{0,k},  \\
-    & & - {\sum_{i = 1}^\infty \Big( q_{i,k} \cdot I_{0,k} \cdot \delta(t - \tau_{i,k}^\text{init}) - Q_{1,k} \cdot \delta(t - \tau_{i,k}^\text{final}) \Big),} \\
-    \dfrac{dI_{1,k}}{dt} & =& \Gamma_{1,k} +  (1 - p_{A,k}) \cdot \gamma_{E,k} \cdot  E_k  - \Big( p_{I_{2,k}} \cdot \beta_{1 \to 2, k} + (1 - p_{I_{2,k}}) \beta_{1 \to R, k} - q_{2,k} \Big) \cdot I_{1,k}, \\
-    \dfrac{dI_{2,k}}{dt} & = &  p_{I_{2,k}} \cdot \beta_{1 \to 2, k}\cdot \big( Q_{2,k} + I_{1,k} \big)  \\
+    \dfrac{dE_k}{dt} & = & \Gamma_{E,k} + {\alpha_k(t)\,} \sum_{\ell = 1}^{m} \bigg( \sum_{j = 0}^{3} \gamma_{j,\ell} I_{j,\ell} \bigg) \cdot S_k - \gamma_{E,k} \cdot E_k \nonumber  \\
+    & & - {\sum_{i = 1}^\infty \Big( q_{i,k} \cdot E_{k} \cdot \delta(t - \tau_{i,k}^\text{init}) - Q_{E,k} \cdot \delta(t - \tau_{i,k}^\text{final}) \Big),} \label{eq:Ek} \\
+    \dfrac{dI_{0,k}}{dt} & = & \Gamma_{0,k} +  p_{I_0,k} \cdot \gamma_{E,k} \cdot E_k - \beta_{0 \to R, k} \cdot I_{0,k} \nonumber  \\
+    & & - {\sum_{i = 1}^\infty \Big( q_{i,k} \cdot I_{0,k} \cdot \delta(t - \tau_{i,k}^\text{init}) - Q_{0,k} \cdot \delta(t - \tau_{i,k}^\text{final}) \Big),} \\
+    \dfrac{dI_{1,k}}{dt} & =& \Gamma_{1,k} +  (1 - p_{I_0,k}) \!\cdot\! \gamma_{E,k} \!\cdot\!  E_k  - \Big( p_{I_{2,k}} \!\cdot\! \beta_{1 \to 2, k} + (1 - p_{I_{2,k}}) \!\cdot\! \beta_{1 \to R, k} + p_{1,k} \Big) \!\cdot\! I_{1,k}, \\
+    \dfrac{dI_{2,k}}{dt} & = &  p_{I_{2,k}} \cdot \beta_{1 \to 2, k}\cdot \big( Q_{1,k} + I_{1,k} \big) \nonumber \\
     && - \Big( p_{I_{3,k}} (I_2) \cdot  \beta_{2\to 3,k}(I_2) + \big( 1 - p_{I_{3,k}}(I_2) \big) \cdot \beta_{2 \to R,k} (I_2)\Big) \cdot I_{2,k}, \\
-    \dfrac{dI_{3,k}}{dt} & = &  p_{I_{3,k}}(I_2) \cdot \beta_{2\to 3,k} (I_2) \cdot I_{2,k}  \\
+    \dfrac{dI_{3,k}}{dt} & = &  p_{I_{3,k}}(I_2) \cdot \beta_{2\to 3,k} (I_2) \cdot I_{2,k} \nonumber \\
     &&- \Big( \big(1 - p_{M,k}(I_3) \big) \cdot \beta_{3\to R, k} + p_{M,k}(I_3) \cdot \beta_{3 \to M, k} \Big) \cdot I_{3,k},  \\
     \dfrac{dM_{k}}{dt} & = & p_{M,k}(I_3) \cdot \beta_{3\to M,{k}} \cdot I_{3,k}, \\
-    \dfrac{dQ_{S,k}}{dt} & = & {\sum_{i = 1}^\infty q_{i,k} \cdot S_k(\tau_{i,k}^\text{init})
+    \dfrac{dQ_{S,k}}{dt} & = & {\sum_{i = 1}^\infty q_{i,k} \cdot S_k(\tau_{i,k}^\text{init}) \cdot
     \Big(\delta(t - \tau_{i,k}^\text{init}) - \delta(t - \tau_{i,k}^\text{final}) \Big) } \label{eq:QSk}, \\
-    \dfrac{dQ_{1,k}}{dt} & = & - \beta_{A \rightarrow R,k}\cdot Q_{1, k} + {\sum_{i = 1}^\infty \bigg( q_{i,k} \cdot I_{0,k} \cdot \delta(t - \tau_{i,k}^\text{init}) - Q_{1,k} \cdot \delta(t - \tau_{i,k}^\text{final}) \bigg),} \\
-    \dfrac{dQ_{2,k}}{dt} & = & q_{2,k} \cdot I_{1,k} - \Big( p_{I_{2,k}}\cdot \beta_{1 \rightarrow 2, k} + (1 - p_{I_{2,k}}) \cdot  \beta_{1 \rightarrow R,k} \Big) \cdot Q_{2,k},
+    \dfrac{dQ_{E,k}}{dt} & = & - \gamma_{E,k} \cdot Q_{E, k} + {\sum_{i = 1}^\infty \bigg( q_{i,k} \cdot E_{k} \cdot \delta(t - \tau_{i,k}^\text{init}) - Q_{E,k} \cdot \delta(t - \tau_{i,k}^\text{final}) \bigg),} \\
+    \dfrac{dQ_{0,k}}{dt} & = & p_{I_0,k} \cdot \gamma_{E,k} \cdot Q_{E,k} - \beta_{0 \rightarrow R,k}\cdot Q_{0, k} \nonumber \\
+    && + {\sum_{i = 1}^\infty \bigg( q_{i,k} \cdot I_{0,k} \cdot \delta(t - \tau_{i,k}^\text{init}) - Q_{0,k} \cdot \delta(t - \tau_{i,k}^\text{final}) \bigg),} \\
+    \dfrac{dQ_{1,k}}{dt} & = & (1 - p_{I_0,k}) \!\cdot\! \gamma_{E,k} \!\cdot\! Q_{E,k} + p_{1,k} \!\cdot\! I_{1,k} - \big( p_{I_{2,k}} \!\cdot\! \beta_{1 \rightarrow 2, k} + (1 - p_{I_{2,k}}) \!\cdot\!  \beta_{1 \rightarrow R,k} \big) \!\cdot\! Q_{1,k},
 \end{eqnarray}
-donde $j= 0, 1, 2, 3$ representa el estado de la infección y $k, l = 1, 2, ...., m$ el grupo de edad. El total de individuos infectados $I_j = \sum_{j=0}^{M} I_{j,k}$, donde $$ p_{I_{M,k}}(I_3) = \begin{cases}
+donde $j= 0, 1, 2, 3$ representa el estado de la infección y $k, l = 1, 2, ...., m$ el grupo de interés. $\Gamma_{j,k}$ representa las tasas de recrutamiento o migración y $1/\gamma_{E,k}$ al tiempo promedio en estado de latencia. Se asume que todos los individuos en el estado $I_{j,k}$ se recuperarán a una tasa constante $\beta_{j\rightarrow R, k}$ y que $p_{I_{j},k}$ es la proporción de infectados en cada k-compartimiento de $I_{j,k}$ que pasan al compartimiento $I_{j+1,k}$. La fuerza de infección de $I_{j,l}$ en cada grupo $k$ está representada por $\gamma_{j, \ell}$ y se define como:
+$$
+\gamma_{j, \ell} = \lambda_{j, \ell} \sum_{k = 1}^{m} c_{\ell}^{k} I_{j,k},
+$$
+donde $j =0, 1, 2, 3$, $k = 1, ...., m$, la tasa de contagio es representada para cada infección del tipo $j$ y para cada grupo $l$, con $\lambda_{j,l}$ como el riesgo de infección del grupo $l$. La matriz de $m\times m$ $C= (c_{l}^{k})$ es la matriz de contacto donde cada entrada $c_{l}^{k}$ representa la tasa de contacto entre grupos $l$ y $k$.
+
+Para evaluar las condiciones de escasez hospitalaria se define: $$ p_{I_{M,k}}(I_3) = \begin{cases}
     q_{M,k}^1, & \textrm{ if } I_3 < \hat{I}_3, \\
     q_{M,k}^2, & \textrm{ if } I_3 \geq \hat{I}_3, 
     \end{cases}$$
-denota el porcentaje de personas que pueden ser tratadas si $\hat I_3$ representa el número de casos necesarios para saturar las unidades de cuidado intensivo del sistema de salud. Similarmente, se tiene que
+que denota el porcentaje de personas que pueden ser tratadas si $\hat I_3$ representa el número de casos necesarios para saturar las unidades de cuidado intensivo del sistema de salud. Similarmente, se tiene que
 
 $$ p_{I_{2,k}}(I_2) = \begin{cases}
     q_{3,k}^1, & \textrm{ if } I_2 < \hat{I}_2, \\
     q_{3,k}^2, & \textrm{ if } I_2 \geq \hat{I}_2, 
     \end{cases}$$
-donde $\hat I_{2}$ representa el número de casos de infectados que saturan el sistema de salud pata camas con conexión de oxígeno
-
-Los parámetros $\Gamma_{j,k}$ representan las tasas de recrutamiento o migración con:
+donde $\hat I_{2}$ representa el número de casos de infectados que saturan el sistema de salud para camas con conexión de oxígeno. Finalmente, 
 $$
-\gamma_{j, \ell} = \lambda_{j, \ell} \sum_{k = 1}^{m} c_{\ell}^{k} I_{j,k},
+    \beta_{2 \to 3, k}(I_2) = \begin{cases}
+    \beta_{2 \to 3, k}^1, & \textrm{ if } I_2 < \hat{I}_2, \\
+    \beta_{2 \to 3, k}^2, & \textrm{ if } I_2 \geq \hat{I}_2, \\
+    \end{cases}
 $$
-donde $j =0, 1, 2, 3$, $k = 1, ...., m$, la tasa de contagio es representada para cada infección del tipo $j$ y para cada grupo $l$, entonces, con $\lambda_{j,k}$ y con la matriz $C= c_{l}^{k}$, donde cada entrada $c_{l}^{k}$ representa la tasa de contacto entre grupos $l$ y $k$, la tasa de contagio $\gamma_{k,l}$ puede ser definida.
+representa el cambio en la duración si el sistema de salud tiene conexión a oxígeno disponible. 
 
 En este modelo los parámetros representan:
 
@@ -97,7 +107,7 @@ En este modelo los parámetros representan:
  
 |         Variable            |     Interpretación                                                                        |
 |:---------------------------:|:------------------------------------------------------------------------------------------|
-| $p_A$                    | Proporción de asintomáticos                                                              |            
+| $p_{I_0}$                    | Proporción de asintomáticos                                                              |            
 | $p_{I_2}$                | Proporción de infecciosos tipo 1 que se vuelven tipo 2                                   |                            
 | $p_{I_3}$                | Proporción de infecciosos tipo 2 que se vuelven tipo 3                                   |                         
 | $p_{M}$                  | Proporción de infecciosos tipo 3 que se mueren                                           |            
@@ -121,7 +131,7 @@ En este modelo los parámetros representan:
 ### Cuarentenas
 Para mitigar el contagio se implementaron 3 tipos de cuarentena en el modelo:
 
-* **Cuarentena tipo 1**. Son las cuarentenas del tipo voluntario, donde un porcentaje $q_{i,k}$ de la población adopta la cuarentena de un tiempo inicial $\tau_{i,k}^{inicial}$ a un tiempo $\tau_{i,k}^{final}$. Este tipo de cuarentenas pueden ser implementadas de distinta forma para cada grupo $k$, indicado por el índice $i$.  Por ejemplo, para la solución de la ecuación $\frac{d Q_{S,k}}{dt}$:
+* **Cuarentena tipo 1**. Son las cuarentenas del tipo voluntario, donde un porcentaje $q_{i,k}$ de la población adopta la cuarentena de un tiempo inicial $\tau_{i,k}^{inicial}$ a un tiempo $\tau_{i,k}^{final}$. Este tipo de cuarentenas pueden ser implementadas de distinta forma para cada grupo $k$, indicado por el índice $i$, para capturar este fenómeno de migración entre compartimientos se utilizaron deltas de Dirac.  Por ejemplo, la solución de la ecuación $\frac{d Q_{S,k}}{dt}$ es:
 
 $$
 Q_{S,k} = Q_{S,k}(0) +
@@ -139,7 +149,7 @@ $$
       \end{cases}.
 $$
 
-* **Cuarentena tipo 2**. Representan la cuarentena voluntaria del porcentaje $q_{2,k}$ individuos que presentan síntomas de la enfermedad.
+* **Cuarentena tipo 2**. Representan la cuarentena voluntaria del porcentaje $p_{1,k}$ individuos que presentan síntomas de la enfermedad.
 * **Cuarentena tipo 3**. También llamadas toque de queda. Son controladas para cada grupo de la siguiente manera:
   $$
       \alpha_k(t) \;=\; \begin{cases}
@@ -147,11 +157,11 @@ $$
       q_{S,k}, & t \in [6,\,7) \mod{7}
       \end{cases}.
   $$
-Cada $q_{S,k}$ puede variar en el tiempo al rotar la circulación de individuos. 
+Cada $q_{S,k}$ puede variar en el tiempo al rotar la circulación de individuos. [-@arXiv_v2, -@arXiv_v1, -@Brauer, -@BrauerCastillo, -@Ferguson]
 
 ### Condiciones iniciales
 
-Las condiciones iniciales para el modelo se definen como $M_k(0) = Q_{S,k}(0) = Q_{1,k}(0) =  Q_{2,k}(0) =0$ para $k=1, ..., m$ al inicio de la enfermedad. Las variables $I_{j,k}(0)$ también pueden considerarse nulas. La población total inicial se divide entre el total inicial de susceptibles $S_{k}(0)$, expuestos $E_{k}(0)$ e infectados asintomáticos $I_{0,k}(0)$ y debe satisfacer:
+Las condiciones iniciales para el modelo se definen como $M_k(0) = Q_{S,k}(0) = Q_{1,k}(0) =  Q_{2,k}(0) =0$ para $k=1, ..., m$ al inicio de la enfermedad, pues aún no habrán cuarentenas o muertes como consecuencia de la enfermedad. Las variables $I_{j,k}(0)$ también pueden considerarse nulas. La población total inicial se divide entre el total inicial de susceptibles $S_{k}(0)$, expuestos $E_{k}(0)$ e infectados asintomáticos $I_{0,k}(0)$ y debe satisfacer:
 
 $$  
   \sum_{k = 1}^m \Big( S_{k}(0) + E_{k}(0) + I_{0,k}(0) \Big) \;=\; 1,
@@ -442,7 +452,6 @@ all.models <- model.bind(model.list)
 ```
 
 Y pueden aplicarse las funciones de graficación previas al modelo:
-
 ```{r}
 ggplot.epidemiological.lines.infected(all.models)
 ```
@@ -757,8 +766,5 @@ Traducciones bienvenidas.
 ## Código
 
 Ver código en [Github](https://github.com/RodrigoZepeda/CoronavirusModel)
-
-<!--License -->
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
 
 ## Referencias
