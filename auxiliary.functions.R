@@ -408,6 +408,31 @@ cummulative.cases.M <- function(modelo, age_cats = ncol(modelo$dats)/11 - 1){
   
 }
 
+model.rescale <- function(modelo, scale.factor = 10000){
+  
+  #Get colnmaes
+  other.cols   <- colnames(modelo$dats)[which(colnames(modelo$dats) != "time")]
+  scale.factor <- rep(scale.factor, length(other.cols)/length(scale.factor))
+  for (i in 1:length(other.cols)){
+    modelo$dats[,other.cols[i]] <- scale.factor[i]*modelo$dats[,other.cols[i]]  
+  }
+  
+  
+  return(modelo)
+  
+}
+
+cummulative.rescale <- function(dats.cummulative, scale.factor = 10000){
+  
+  #Get colnmaes
+  other.cols   <- colnames(dats.cummulative)[which(colnames(dats.cummulative) != "time")]
+  scale.factor <- rep(scale.factor, length(other.cols)/length(scale.factor))
+  for (i in 1:length(other.cols)){
+    dats.cummulative[,other.cols[i]] <- scale.factor[i]*dats.cummulative[,other.cols[i]]
+  }
+  return(dats.cummulative)
+}
+
 cummulative.cases <- function(modelo, age_cats = ncol(modelo$dats)/11 - 1){
   
   dats.cummulative <- data.frame(
@@ -457,15 +482,15 @@ ggplot.epidemiological.lines.infected <- function(modelo, title = "Evolución de
   }
   
   if ("I2" %in% infect.cats){
-    plot <- plot + geom_line(aes(x = time, y = scale*I2, color = "Infección severa")) 
+    plot <- plot + geom_line(aes(x = time, y = scale*I2, color = "Hospitalización grave")) 
   }
   
   if ("I3" %in% infect.cats){
-    plot <- plot + geom_line(aes(x = time, y = scale*I3, color = "Infección crítica")) 
+    plot <- plot + geom_line(aes(x = time, y = scale*I3, color = "Hospitalización en UCI")) 
   }
     
   plot + 
-    theme_classic() + xlab(xlab) + ylab(ylab) +
+    theme_classic() + xlab(xlab) + ylab(ylab) + ggtitle(title) +
     scale_color_brewer("Etapas de la enfermedad", palette = "Dark2") +
     scale_y_continuous(labels = function(x) format(x, scientific = F))
   
@@ -714,8 +739,6 @@ time.of.peak <- function(model){
   
 } 
 
-
-
 time.to.saturation <- function(model, 
                                saturation.values = c("I2" = model$params$saturationI2,
                                                      "I3" = model$params$saturationI3)){
@@ -725,5 +748,21 @@ time.to.saturation <- function(model,
   
 }
 
+
+ggplot.data.to.fitted <- function(cummulative.model, dats){
+  
+  cols.model <- colnames(dats)[which(colnames(dats) != "time")]
+  
+  plot <- ggplot(cummulative.model, aes(x = time)) + theme_bw() +
+    xlab("Incidencia acumulada por cada 10,000 habitantes") +
+    ylab("Días desde el inicio de la epidemia")
+  
+  for (var in cols.model){
+    plot <- plot + geom_line(aes_string(y = var)) +
+      geom_point(aes_string(y = var), size = 2, color = "red", data = dats)
+  }
+    
+  return(plot)
+}
 
 
