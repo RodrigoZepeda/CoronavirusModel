@@ -1,0 +1,55 @@
+\documentclass[tikz,border=2mm]{standalone}
+
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+\begin{document}
+
+\begin{tikzpicture}[auto, xscale=2, yscale=2,
+    -latex,
+    every node/.append style={align=center},
+    every path/.append style = {thick},
+    int/.style={draw, minimum size=1cm},
+    quar/.style={draw=blue, fill=blue!10},
+    susc/.style={draw=brown, fill=brown!10},
+    %expo/.style={draw=yellow, fill=yellow!10},
+    infe/.style={draw=red, fill=red!10},
+    reco/.style={draw=green, fill=green!10},
+    %deat/.style={draw=black, fill=black!10},]
+    ]
+    %\draw[help lines, step=1] (0,4) grid (7,-4);
+
+   \node [int,susc] (S)             {$S$};
+   \node [int,quar] at (0,-1) (QS) {$Q_S$};
+   \node [int,infe] at (1,0) (E) {$E$};
+   \node [int,infe] at (2,0) (I0) {$I_0$};
+   \node [int,quar] at (2,-1) (Q0) {$Q_0$};
+   \node [int,quar] at (1,-1) (QE) {$Q_E$};
+   \node [int,quar] at (3,-1) (Q1) {$Q_1$};
+   \node [int,infe] at (3,0) (I1) {$I_1$};
+   \node [int,infe] at (4,0) (I2) {$I_2$};
+   \node [int,infe] at (5,0) (I3) {$I_3$};
+   \node [int,reco] at (4,1) (R) {$R$};
+   \node [int,infe] at (5,-1) (M) {$M$};
+   
+   \path[transform canvas={xshift=1ex}] (S) edge[draw=blue] (QS);
+   \path[transform canvas={xshift=-1ex}] (QS) edge[draw=brown] (S);
+   \path[transform canvas={xshift=1ex}] (E) edge[draw=blue] (QE);
+   \path[transform canvas={xshift=-1ex}] (QE) edge[draw=red] (E);
+   \path[transform canvas={xshift=1ex}] (I0) edge[draw=blue] (Q0);
+   \path[transform canvas={xshift=-1ex}] (Q0) edge[draw=red] (I0);
+   \path (S) edge[draw=red] (E);
+   \path (E) edge[draw=red] (I0);
+   \draw[draw=red] (E) |- +($(2,1)+(-0.5ex,-0.5ex)$) -- ($(I1.north)+(-0.5ex,0)$);
+   \draw[draw=green] (I0) |- ($(R.west)+(0,0.5ex)$);
+   \path (QE) edge[draw=blue] (Q0);
+   \draw[draw=blue] (QE) |- +(2,-1) -- (Q1);
+   \path (I1) edge[draw=red] (I2);
+   \path (I1) edge[draw=blue] (Q1);
+   \draw[draw=red] (Q1) -| (I2);
+   \path (I2) edge[draw=red] (I3);
+   \path (I3) edge[draw=red] (M);
+   \draw[draw=green] (I3) |- (R);
+   \path (I2) edge[draw=green] (R);
+   \draw[draw=green] ($(I1.north)+(0.5ex,0)$) |- ($(R.west)+(0,-0.5ex)$);
+\end{tikzpicture}
+\end{document}
